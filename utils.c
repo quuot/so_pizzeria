@@ -14,7 +14,7 @@ int init_shm_tables()
     int shm_id_tables_key;
     shm_id_tables_key = ftok(".",'A');
     shm_id_tables=shmget(shm_id_tables_key, 10*3*sizeof(int), IPC_CREAT|IPC_EXCL|0600);
-    if (shmID==-1){
+    if (shm_id_tables==-1){
         printf("utils: blad pamieci dzielonej\n"); 
         exit(1);
     }

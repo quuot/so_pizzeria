@@ -13,14 +13,7 @@
 int main()
 {
     printf("ff: start managera\n");
-
-    int shm_id_tables_key;
-    shm_id_tables_key = ftok(".",'A');
-    shm_id_tables=shmget(shm_id_tables_key, 10*3*sizeof(int), IPC_CREAT|IPC_EXCL|0600);
-    if (shmID==-1){
-        printf("mainp: blad pamieci dzielonej\n"); 
-        exit(1);
-    }
+    int shm_id_tables = init_shm_tables();
 
 
 }
