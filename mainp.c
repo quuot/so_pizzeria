@@ -11,6 +11,7 @@
 #include "utils.h"
 
 int shm_id_tables; // przypisanie wartosci w init_tables()
+int msg_manager_client_id;
 
 void sigint_handler(int sig);
 void sigint_hadler_init();
@@ -22,15 +23,39 @@ int main()
 {
    sigint_hadler_init(); // inicjalizacja obslugi SIGINT
    fire_handler_init();
+   fork_manager_firefighter(); // uruchomienie procesu manager i firefighter
 
    struct table *tables_ptr = init_tables(); // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
 
-   fork_manager_firefighter(); // uruchomienie procesu manager i firefighter
+   key_t msg_manager_client_key = ftok(".", 'B');
+   if ( msg_manager_client_key == -1 ) { 
+      printf("mainp: Blad ftok dla msg_manager_client_key\n"); 
+      exit(1);
+      }
+   msg_manager_client_id = msgget(msg_manager_client_key, IPC_CREAT|IPC_EXCL|0666); 
+   if (msg_manager_client_id == -1) {
+      printf("mainp: blad tworzenia kolejki komunikatow\n"); 
+      exit(1);
+   }
+
+
+   switch (fork()) // tworzenie procesu klienta 1
+   {
+   case -1:
+      perror("mainp: Blad fork kienta");
+      exit(1);
+   case 0:
+      execl("./bin/client", "client", NULL);
+   }
+
+   wait(NULL);
+
 
    shmdt(tables_ptr);                     // odlaczanie pamieci tables
    wait(NULL);                            // zakonczenie procesu strazak
    wait(NULL);                            // zakonczenie procesu manager
    shmctl(shm_id_tables, IPC_RMID, NULL); // usuwanie pamieci wspoldzielonej - tables
+   msgctl(msg_manager_client_id, IPC_RMID, NULL); //usuniecie pamieci wspoldzielonej - manager-client
 
    return 0;
 }
@@ -39,7 +64,7 @@ int main()
 
 void sigint_handler(int sig) // funkcja SIGINT - obsluga przerwania
 {
-   // msgctl(msgID,IPC_RMID,NULL); TODO:zamkniecie kolejki
+   msgctl(msg_manager_client_id, IPC_RMID, NULL); 
    shmctl(shm_id_tables, IPC_RMID, NULL);
    // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
    printf("mainp: SIGINT sygnal. Koniec programu.\n");

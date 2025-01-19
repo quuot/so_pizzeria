@@ -8,21 +8,18 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "utils.h"
-//#include <unistd.h>
-//#include <time.h>
+// #include <unistd.h>
+// #include <time.h>
 
 int main()
 {
     printf("ff: start strazaka\n");
-    int shm_id_tables = init_shm_tables(); //pozyskanie tablicy TABLES
-    struct table *tables_ptr = (struct table*)shmat(shm_id_tables, NULL, 0);
-
+    int shm_id_tables = init_shm_tables(); // pozyskanie tablicy TABLES
+    struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
 
     sleep(1);
-    printf("ff: UWAAAAGAAA! POOOOOOOZAR!\n");
-
-    kill(0, SIGUSR1);
-    
+    //printf("ff: UWAAAAGAAA! POOOOOOOZAR!\n");
+    //kill(0, SIGUSR1);
 
     shmdt(tables_ptr);
     return 0;
