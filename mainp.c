@@ -13,61 +13,58 @@
 int shm_id_tables; // przypisanie wartosci w init_tables()
 int msg_manager_client_id;
 
+void exit_handler();
 void sigint_handler(int sig);
 void sigint_hadler_init();
 struct table *init_tables();
-void fork_manager_firefighter();
+void create_manager_firefighter();
 void fire_handler_init();
+void send_end_of_the_day();
+void create_client();
 
 int main()
 {
    sigint_hadler_init(); // inicjalizacja obslugi SIGINT
    fire_handler_init();
-   fork_manager_firefighter(); // uruchomienie procesu manager i firefighter
 
    struct table *tables_ptr = init_tables(); // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
+   msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client
 
-   key_t msg_manager_client_key = ftok(".", 'B');
-   if ( msg_manager_client_key == -1 ) { 
-      printf("mainp: Blad ftok dla msg_manager_client_key\n"); 
-      exit(1);
-      }
-   msg_manager_client_id = msgget(msg_manager_client_key, IPC_CREAT|IPC_EXCL|0666); 
-   if (msg_manager_client_id == -1) {
-      printf("mainp: blad tworzenia kolejki komunikatow\n"); 
-      exit(1);
+   //TUTAJ DRUGA KOLEJKA
+
+   create_manager_firefighter(); // uruchomienie procesu manager i firefighter
+   sleep(1);
+   create_client(); //tworzenie klienta
+   sleep(5);
+   send_end_of_the_day();
+
+   while (wait(NULL) > 0) { //oczekiwanie na zakonczenie procesow potomnych
+      //nothing here
    }
-
-
-   switch (fork()) // tworzenie procesu klienta 1
-   {
-   case -1:
-      perror("mainp: Blad fork kienta");
-      exit(1);
-   case 0:
-      execl("./bin/client", "client", NULL);
-   }
-
-   wait(NULL);
-
 
    shmdt(tables_ptr);                     // odlaczanie pamieci tables
-   wait(NULL);                            // zakonczenie procesu strazak
-   wait(NULL);                            // zakonczenie procesu manager
    shmctl(shm_id_tables, IPC_RMID, NULL); // usuwanie pamieci wspoldzielonej - tables
    msgctl(msg_manager_client_id, IPC_RMID, NULL); //usuniecie pamieci wspoldzielonej - manager-client
 
    return 0;
 }
 
-//===================FUNCJE==============================
+//===================FUNCJE=================================================================================================
+
+void exit_handler() // funkcja SIGINT - obsluga przerwania
+{
+   msgctl(msg_manager_client_id, IPC_RMID, NULL);
+   shmctl(shm_id_tables, IPC_RMID, NULL);
+   kill(0, SIGTERM);
+   // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
+   exit(1);
+}
 
 void sigint_handler(int sig) // funkcja SIGINT - obsluga przerwania
 {
    msgctl(msg_manager_client_id, IPC_RMID, NULL); 
    shmctl(shm_id_tables, IPC_RMID, NULL);
    // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
-   printf("mainp: SIGINT sygnal. Koniec programu.\n");
    exit(1);
 }
 
@@ -89,7 +86,7 @@ struct table *init_tables()
    if (tables_ptr == (void *)-1)
    {
       perror("main: blad shmat dla TABLES\n");
-      exit(1);
+   exit_handler();
    }
 
    for (int i = 0; i < TABLE_ONE; i++)
@@ -124,13 +121,13 @@ struct table *init_tables()
    return tables_ptr;
 }
 
-void fork_manager_firefighter()
+void create_manager_firefighter()
 {
    switch (fork()) // tworzenie procesu managera
    {
    case -1:
       perror("mainp: Blad fork managera");
-      exit(1);
+      exit_handler();
    case 0:
       execl("./bin/manager", "manager", NULL);
    }
@@ -139,7 +136,7 @@ void fork_manager_firefighter()
    {
    case -1:
       perror("mainp: Blad fork firefightera");
-      exit(1);
+      exit_handler();
    case 0:
       execl("./bin/firefighter", "firefighter", NULL);
    }
@@ -155,6 +152,31 @@ void fire_handler_init()
    if (sigaction(SIGUSR1, &sa, NULL) == -1)
    { // obsluga bledu sygnalu pozaru
       perror("main: blad ustawienia handlera pozaru\n");
-      exit(1);
+      exit_handler();
+   }
+}
+
+void send_end_of_the_day()
+{
+   struct conversation dialog; 
+   dialog.pid = 1;
+   dialog.topic = KONIEC_DNIA;
+   dialog.individuals = 0;
+   if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) //wyslanie komunikatu KONIEC DNIA
+	{
+      perror("mainp: blad wysylania komunikatu KONIEC DNIA\n");
+      exit_handler();
+	}   
+}
+
+void create_client()
+{
+   switch (fork()) 
+   {
+   case -1:
+      perror("mainp: Blad fork kienta");
+      exit_handler();
+   case 0:
+      execl("./bin/client", "client", "1", NULL);
    }
 }

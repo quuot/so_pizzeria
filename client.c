@@ -11,48 +11,43 @@
 void fire_handler(int sig);
 void fire_handler_init();
 
-int main()
+int main(int argc, char *argv[])
 {
     printf("client: start clienta, pid: %d\n", (int)getpid());
     fire_handler_init();
-
-   key_t msg_manager_client_key = ftok(".", 'B');
-   if ( msg_manager_client_key == -1 ) { 
-      printf("manager: Blad ftok dla msg_manager_client_key\n"); 
-      exit(1);
-      }
-   int msg_manager_client_id = msgget(msg_manager_client_key, IPC_CREAT | 0600); //todo zmiana uprawnien
-   if (msg_manager_client_id == -1) {
-      printf("manager: blad tworzenia kolejki komunikatow\n"); 
-      exit(1);
-   }
+    int msg_manager_client_id = init_msg_manager_client();
 
     struct conversation dialog; //przygotowanie komunikatu CHCE WEJSC
     dialog.pid = getpid();
     dialog.topic = CHCE_WEJSC;
+    dialog.individuals = atoi(argv[1]);
 
-    if (msgsnd(msg_manager_client_id, &dialog, sizeof(dialog.topic), 0) == -1) // wyslanie komunikatu CHCE WEJSC
+    if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
 	{
       printf("client: blad wysylania komunikatu CHCE WEJSC\n");
       exit(1);
 	}
-    printf("Chce wejsc\n");
+    printf("Chce/my wejsc. Jest nas %d.\n", dialog.individuals);
 
-    if (msgrcv(msg_manager_client_id, &dialog, sizeof(dialog.topic), getpid(), 0) == -1) { //odbieranie komunikatu WEJDZ
+    sleep(1);
+
+    if (msgrcv(msg_manager_client_id, &dialog, conversation_size, getpid(), 0) == -1) { //odbieranie komunikatu WEJDZ
       printf("client: blad odbierania komunikatu\n");
       exit(1);
 	} 
-   
+
+    printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals);
+    
     if(dialog.topic == WEJDZ){
-        printf("Wchodze\n");
+        printf("Wchodzimy.\n");
         sleep(5);
         dialog.topic = DO_WIDZENIA;
-        if (msgsnd(msg_manager_client_id, &dialog, sizeof(dialog.topic), 0) == -1) // wyslanie komunikatu DO WIDZENIA
+        if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
 	    {
             printf("client: blad wysylania komunikatu DO WIDZENIA\n");
             exit(1);
 	    } 
-        printf("Do widzenia, wyszedlem. \nProces CLIENT PID=%d zakonczyl dzialanie.\n", (int)getpid());
+        printf("Do widzenia, wychodzimy. \nProces CLIENT PID=%d zakonczyl dzialanie.\n", (int)getpid());
         return 0;
     }
 
