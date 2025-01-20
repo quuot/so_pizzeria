@@ -48,3 +48,18 @@ int init_msg_manager_client()
    }
    return msg_manager_client_id;
 }
+
+int init_msg_client_manager()
+{
+    key_t msg_client_manager_key = ftok(".", 'C');
+   if ( msg_client_manager_key == -1 ) { 
+      perror("utils: Blad ftok dla msg_client_manager_key\n"); 
+      exit(1);
+      }
+   int msg_client_manager_id = msgget(msg_client_manager_key, IPC_CREAT|0600); 
+   if (msg_client_manager_id == -1) {
+      perror("utils: blad tworzenia kolejki komunikatow msg_client_manager_id\n"); 
+      exit(1);
+   }
+   return msg_client_manager_id;
+}

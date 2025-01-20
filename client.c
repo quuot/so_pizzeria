@@ -15,19 +15,20 @@ int main(int argc, char *argv[])
 {
     printf("client: start clienta, pid: %d\n", (int)getpid());
     fire_handler_init();
-    int msg_manager_client_id = init_msg_manager_client();
+    int msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
+    int msg_client_manager_id = init_msg_client_manager(); //utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
 
     struct conversation dialog; //przygotowanie komunikatu CHCE WEJSC
     dialog.pid = getpid();
     dialog.topic = CHCE_WEJSC;
-    dialog.individuals = atoi(argv[1]);
+    dialog.individuals = atoi(argv[1]); //pobranie ilosci osob w tej grupie, atoi:string to int
 
-    if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
+    if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
 	{
       printf("client: blad wysylania komunikatu CHCE WEJSC\n");
       exit(1);
 	}
-    printf("Chce/my wejsc. Jest nas %d.\n", dialog.individuals);
+    printf("Client: Chce/my wejsc. Jest nas %d.\n", dialog.individuals);
 
     sleep(1);
 
@@ -36,28 +37,28 @@ int main(int argc, char *argv[])
       exit(1);
 	} 
 
-    printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals);
+    //printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals); //debug only
     
     if(dialog.topic == WEJDZ){
-        printf("Wchodzimy.\n");
-        sleep(5);
+        printf("Client: Wchodzimy.\n");
+        sleep(1);
         dialog.topic = DO_WIDZENIA;
-        if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
+        if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
 	    {
-            printf("client: blad wysylania komunikatu DO WIDZENIA\n");
+            printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
             exit(1);
 	    } 
-        printf("Do widzenia, wychodzimy. \nProces CLIENT PID=%d zakonczyl dzialanie.\n", (int)getpid());
+        printf("Client: Do widzenia, wychodzimy. \nProces CLIENT PID=%d zakonczyl dzialanie.\n", (int)getpid());
         return 0;
     }
 
-    printf("Nie wchodze\n");
+    printf("Client: Nie wchodze\n");
     return 0;
 }
 
 void fire_handler(int sig)
 { // logika dzialania podczas pozaru
-    printf("KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
+    printf("client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
 }
 
 void fire_handler_init()

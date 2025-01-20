@@ -23,14 +23,14 @@ int main()
 
     int shm_id_tables = init_shm_tables();
     struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
-
     pid_t clients[20][2]; // tablica z klientami w lokalu
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 20; i++) //wypelnianie tablicy klientow -1 (-1 to brak klienta w danym slocie)
     {
         clients[i][0] = -1;
     }
 
-    int msg_manager_client_id = init_msg_manager_client();
+    int msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client, MANAGER WYSYLA
+    int msg_client_manager_id = init_msg_client_manager(); //utworzenie ID kolejki client-manager, MANAGER ODBIERA
 
     struct conversation dialog;
 
@@ -41,12 +41,12 @@ int main()
         dialog.topic = 0;
         dialog.individuals = 0;
 
-        if (msgrcv(msg_manager_client_id, &dialog, conversation_size, 0, 0) == -1)
+        if (msgrcv(msg_client_manager_id, &dialog, conversation_size, 0, 0) == -1)
         { // odbieranie DOWOLNEGO KOMUNIKATU
             printf("manager: blad odbierania DOWOLNEGO KOMUNIKATU\n");
             exit(1);
         }
-        printf("MANAGER Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals);
+        printf("***MANAGER Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals);
 
         if (dialog.topic == KONIEC_DNIA)
         { // odebranie komunikatu o koncu dnia
@@ -57,7 +57,7 @@ int main()
         { // przerwanie petli jesli wszyscy wyszli
             if (everyone_left(clients) == 1)
             {
-                break;
+                return 0;
             }
         }
 
@@ -82,7 +82,7 @@ int main()
         }
         else if (dialog.topic == DO_WIDZENIA)
         {
-            printf("Manager: Do widzenia, zapraszma ponownie\n");
+            printf("Manager: Do widzenia, zapraszam ponownie\n");
             for (int i = 0; i < 20; i++)
             {
                 if (dialog.pid == clients[i][0])
@@ -118,13 +118,14 @@ void fire_handler_init()
 
 int everyone_left(pid_t clients[20][2]) // sprawdzanie czy wszyscy wyszli. Lokal pusty:1 | są klienci: 0
 {
+    printf("MANAGER: funkcja everyone_left\n");
     int empty = 1;
     for (int i = 0; i < 20; i++)
     {
         if (clients[i][0] != -1)
         {
             empty = 0;
-            break;
+            return empty;
         }
     }
     return empty;
