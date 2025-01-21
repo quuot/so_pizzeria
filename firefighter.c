@@ -19,7 +19,7 @@ int main()
 
     sleep(5);
     // printf("@@@FF:\t UWAAAAGAAA! POOOOOOOZAR!\n");
-    // kill(0, SIGUSR1);
+    //kill(0, SIGUSR1);
 
     shmdt(tables_ptr);
     return 0;

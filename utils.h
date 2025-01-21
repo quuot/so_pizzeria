@@ -11,7 +11,7 @@
 #define WEJDZ 2
 #define BRAK_MIEJSC 3
 #define DO_WIDZENIA 4
-#define KONIEC_DNIA 5
+#define EWAKUACJA 5
 #define conversation_size 3 * sizeof(int)
 
 struct table

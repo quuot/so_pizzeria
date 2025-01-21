@@ -50,7 +50,7 @@ int main()
    }
 
    sleep(1);
-   kill(0, SIGUSR2); // TO NIE MOŻE BYC SYGNAL LUB SYGNAL NIE MOZE ZAKLOCAC DZIALANIA WHILE. ROZWAZYC MSG QUEUE
+   kill(0, SIGUSR2); //sygnal KONIEC DNIA, nie bedzie wiecej klientow
 
    wait_all_processes();
    shmdt(tables_ptr);                             // odlaczanie pamieci tables
