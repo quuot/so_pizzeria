@@ -18,15 +18,14 @@ void sigint_handler(int sig);
 void sigint_hadler_init();
 struct table *init_tables();
 void create_manager_firefighter();
-void fire_handler_init();
-void send_end_of_the_day();
-void create_client();
+void create_client(int individuals);
 void wait_all_processes();
 
 int main()
 {
    sigint_hadler_init(); // inicjalizacja obslugi sygnalu SIGINT
-   fire_handler_init(); //inicjalizacja obslugi sygnalu POZAR
+   ignore_fire_handler_init(); //inicjalizacja obslugi sygnalu POZAR
+   ignore_end_of_the_day_init(); //inicjalizacja obslugi sygnalu END OF THE DAY
 
    struct table *tables_ptr = init_tables(); // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
    msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client
@@ -34,9 +33,17 @@ int main()
 
    create_manager_firefighter(); // uruchomienie procesu manager i firefighter
    sleep(1);
-   create_client(); //tworzenie klienta
-   sleep(10);
-   send_end_of_the_day(); //komunikat KONIEC DNIA - nie bedzie wiecej klientow
+
+   create_client(1); //tworzenie klienta
+   sleep(2);
+   create_client(2);
+   sleep(2);
+   create_client(3);
+   sleep(2);
+   create_client(4);
+
+   sleep(1);
+   kill(0, SIGUSR2);// TO NIE MOŻE BYC SYGNAL LUB SYGNAL NIE MOZE ZAKLOCAC DZIALANIA WHILE. ROZWAZYC MSG QUEUE
 
 
    wait_all_processes();
@@ -55,7 +62,7 @@ void exit_handler() // funkcja SIGINT - obsluga przerwania
    msgctl(msg_manager_client_id, IPC_RMID, NULL);
    msgctl(msg_client_manager_id, IPC_RMID, NULL);
    shmctl(shm_id_tables, IPC_RMID, NULL);
-   kill(0, SIGTERM);
+   kill(0, SIGTERM); //zabija procesy z process-group
    // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
    exit(1);
 }
@@ -143,34 +150,7 @@ void create_manager_firefighter()
    }
 }
 
-void fire_handler_init()
-{ // uruchamia obsluge sygnalu pozaru
-   struct sigaction sa;
-   sa.sa_handler = SIG_IGN; // ignoruje sygnal
-   sigemptyset(&sa.sa_mask);
-   sa.sa_flags = 0;
-
-   if (sigaction(SIGUSR1, &sa, NULL) == -1)
-   { // obsluga bledu sygnalu pozaru
-      perror("main: blad ustawienia handlera pozaru\n");
-      exit_handler();
-   }
-}
-
-void send_end_of_the_day()
-{
-   struct conversation dialog; 
-   dialog.pid = getpid();
-   dialog.topic = KONIEC_DNIA;
-   dialog.individuals = 0;
-   if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) //wyslanie komunikatu KONIEC DNIA
-	{
-      perror("mainp: blad wysylania komunikatu KONIEC DNIA\n");
-      exit_handler();
-	}   
-}
-
-void create_client()
+void create_client(int individuals)
 {
    switch (fork()) 
    {
@@ -178,7 +158,11 @@ void create_client()
       perror("mainp: Blad fork kienta");
       exit_handler();
    case 0:
-      execl("./bin/client", "client", "1", NULL);
+      char tmp_str[10];  
+      snprintf(tmp_str, sizeof(tmp_str), "%d", individuals); 
+      execl("./bin/client", "client", tmp_str, NULL); 
+      perror("main: blad execl ze zmienna iloscia klientow"); 
+      exit(1);
    }
 }
 
@@ -188,3 +172,4 @@ void wait_all_processes()
       //nothing here, just waiting
    }
 }
+

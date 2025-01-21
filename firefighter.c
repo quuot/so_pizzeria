@@ -13,12 +13,12 @@
 
 int main()
 {
-    printf("ff: start strazaka\n");
+    ignore_end_of_the_day_init();
     int shm_id_tables = init_shm_tables(); // pozyskanie tablicy TABLES
     struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
 
-    sleep(1);
-    //printf("ff: UWAAAAGAAA! POOOOOOOZAR!\n");
+    sleep(5);
+    //printf("@@@FF:\t UWAAAAGAAA! POOOOOOOZAR!\n");
     //kill(0, SIGUSR1);
 
     shmdt(tables_ptr);

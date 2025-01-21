@@ -32,4 +32,6 @@ int init_shm_tables();
 void print_tables(struct table *tables, int tables_total);
 int init_msg_manager_client();
 int init_msg_client_manager();
+void ignore_fire_handler_init();
+void ignore_end_of_the_day_init();
 

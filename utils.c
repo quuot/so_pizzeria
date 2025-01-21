@@ -63,3 +63,31 @@ int init_msg_client_manager()
    }
    return msg_client_manager_id;
 }
+
+void ignore_fire_handler_init()
+{ // uruchamia obsluge sygnalu pozaru
+   struct sigaction sa;
+   sa.sa_handler = SIG_IGN; // ignoruje sygnal
+   sigemptyset(&sa.sa_mask);
+   sa.sa_flags = 0;
+
+   if (sigaction(SIGUSR1, &sa, NULL) == -1)
+   { // obsluga bledu sygnalu pozaru
+      perror("utils: blad ustawienia handlera pozaru\n");
+      exit(1);
+   }
+}
+
+void ignore_end_of_the_day_init()
+{ //ignoruje sygnal end of the day
+   struct sigaction sa;
+   sa.sa_handler = SIG_IGN; // ignoruje sygnal
+   sigemptyset(&sa.sa_mask);
+   sa.sa_flags = 0;
+
+   if (sigaction(SIGUSR2, &sa, NULL) == -1)
+   { 
+      perror("utils: blad ustawienia ignore end of the day\n");
+      exit(1);
+   }
+}

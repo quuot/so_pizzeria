@@ -13,8 +13,10 @@ void fire_handler_init();
 
 int main(int argc, char *argv[])
 {
-    printf("client: start clienta, pid: %d\n", (int)getpid());
+    printf("---Client  %d: Proces urchomiony\n", (int)getpid());
     fire_handler_init();
+    ignore_end_of_the_day_init();
+
     int msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
     int msg_client_manager_id = init_msg_client_manager(); //utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
 
@@ -25,10 +27,10 @@ int main(int argc, char *argv[])
 
     if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
 	{
-      printf("client: blad wysylania komunikatu CHCE WEJSC\n");
+      printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
       exit(1);
 	}
-    printf("Client: Chce/my wejsc. Jest nas %d.\n", dialog.individuals);
+    printf("---Client %d: Wysyla chce wejsc. Osob: %d\n", getpid(), dialog.individuals);
 
     sleep(1);
 
@@ -40,15 +42,15 @@ int main(int argc, char *argv[])
     //printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals); //debug only
     
     if(dialog.topic == WEJDZ){
-        printf("Client: Wchodzimy.\n");
-        sleep(1);
+        printf("---Client %d: Wszedlem, jem.\n", getpid());
+        sleep(2);
         dialog.topic = DO_WIDZENIA;
         if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
 	    {
             printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
             exit(1);
 	    } 
-        printf("Client: Do widzenia, wychodzimy. \nProces CLIENT PID=%d zakonczyl dzialanie.\n", (int)getpid());
+        printf("---Client %d: Wychodze. Koncze proces.\n", (int)getpid());
         return 0;
     }
 
@@ -58,7 +60,7 @@ int main(int argc, char *argv[])
 
 void fire_handler(int sig)
 { // logika dzialania podczas pozaru
-    printf("client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
+    printf("---Client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
 }
 
 void fire_handler_init()
