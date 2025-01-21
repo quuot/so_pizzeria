@@ -16,6 +16,7 @@ int msg_client_manager_id;
 int end_of_the_day;
 int end_of_the_day_recently_triggered;
 pid_t clients[CLIENTS_TOTAL][2]; // tablica z klientami w lokalu
+struct table *tables_ptr;        // wskaznik do tablicy z ukladem stolikow w lokalu
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -28,19 +29,17 @@ void remove_client(struct conversation *dialog);
 void allow_client_in(struct conversation dialog);
 void reject_client(struct conversation dialog);
 void client_leaves(struct conversation dialog);
+void provide_seat(struct conversation dialog);
 
 int main()
 {
     fire_handler_init();
     end_of_the_day_handler_init();
-
     int shm_id_tables = init_shm_tables();
-    struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
-
-    init_clients_tab(); // inicjalizacja tablicy - lokal jest pusty
-
-    msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client, MANAGER WYSYLA
-    msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager, MANAGER ODBIERA
+    tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0); // pobranie wskaznika do tablicy z ukladem stolikow w lokalu
+    init_clients_tab();                                         // inicjalizacja tablicy - lokal jest pusty
+    msg_manager_client_id = init_msg_manager_client();          // utworzenie ID kolejki manager-client, MANAGER WYSYLA
+    msg_client_manager_id = init_msg_client_manager();          // utworzenie ID kolejki client-manager, MANAGER ODBIERA
 
     struct conversation dialog;
 
@@ -62,20 +61,20 @@ int main()
                 exit(1);
             }
         }
-        // printf("***MANAGER Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals); //debug only
 
         if (dialog.topic == CHCE_WEJSC)
         {
-            allow_client_in(dialog);
-        }
-
-        if (dialog.topic == CHCE_WEJSC)
-        {
-            reject_client(dialog);
+            provide_seat(dialog); // szuka odpowiedniego stolika, zaprasza klienta lub odrzuca.
         }
 
         if (dialog.topic == DO_WIDZENIA)
         {
+            tables_ptr[dialog.table_id].free = tables_ptr[dialog.table_id].free + dialog.individuals;
+            if (tables_ptr[dialog.table_id].free == tables_ptr[dialog.table_id].capacity)
+            {
+                tables_ptr[dialog.table_id].group_size = 0;
+            }
+
             client_leaves(dialog);
         }
 
@@ -184,7 +183,7 @@ void remove_client(struct conversation *dialog)
 
 void allow_client_in(struct conversation dialog)
 {
-    printf("$$$Manager:\t Mozesz wejsc. Dodaje %ld (%d osob) do listy klientow.\n", dialog.pid, dialog.individuals);
+    printf("$$$Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\n", dialog.pid, dialog.table_id, dialog.individuals);
     dialog.topic = WEJDZ;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) //
     {
@@ -209,4 +208,26 @@ void client_leaves(struct conversation dialog)
 {
     printf("$$$Manager:\t Do widzenia. Usuwam %ld (%d osob) z listy klientow\n", dialog.pid, dialog.individuals);
     remove_client(&dialog);
+}
+
+void provide_seat(struct conversation dialog)
+{
+    int seat_granted_flag = 0;
+    for (int i = 0; i < TABLES_TOTAL; i++)
+    {
+        if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
+        {
+            tables_ptr[i].free = tables_ptr[i].free - dialog.individuals;
+            tables_ptr[i].group_size = dialog.individuals;
+            dialog.table_id = tables_ptr[i].id;
+            allow_client_in(dialog);
+            seat_granted_flag = 1;
+            break;
+        }
+    }
+
+    if (seat_granted_flag == 0)
+    {
+        reject_client(dialog);
+    }
 }

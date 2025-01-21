@@ -25,11 +25,11 @@ int init_shm_tables()
     return shm_id_tables;
 }
 
-void print_tables(struct table *tables_ptr, int tables_total)
+void print_tables(struct table *tables_ptr)
 {
-    for (int i = 0; i < tables_total; i++)
+    for (int i = 0; i < TABLES_TOTAL; i++)
     {
-        printf("ID=%ld\ncapacity=%d\nfree=%d\ngroup size=%d\n\n", tables_ptr[i].id, tables_ptr[i].capacity, tables_ptr[i].free, tables_ptr[i].group_size);
+        printf("ID=%ld\tcapacity=%d\tfree=%d\tgroup size=%d\n", tables_ptr[i].id, tables_ptr[i].capacity, tables_ptr[i].free, tables_ptr[i].group_size);
     }
 }
 

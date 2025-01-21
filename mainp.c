@@ -34,13 +34,20 @@ int main()
    create_manager_firefighter(); // uruchomienie procesu manager i firefighter
    sleep(1);
 
-   create_client(1); // tworzenie klienta
-   sleep(2);
-   create_client(2);
-   sleep(2);
-   create_client(3);
-   sleep(2);
-   create_client(2);
+   // create_client(1);
+   // sleep(2);
+   // create_client(2);
+   // sleep(2);
+   // create_client(3);
+   // sleep(2);
+   // create_client(2);
+
+   for (int i = 0; i < 20; i++)
+   {
+      int people = i % 3 + 1;
+      create_client(people);
+      sleep(1);
+   }
 
    sleep(1);
    kill(0, SIGUSR2); // TO NIE MOŻE BYC SYGNAL LUB SYGNAL NIE MOZE ZAKLOCAC DZIALANIA WHILE. ROZWAZYC MSG QUEUE
@@ -176,6 +183,6 @@ void wait_all_processes()
 {
    while (wait(NULL) > 0)
    { // oczekiwanie na zakonczenie procesow potomnych
-      // nothing here, just waiting
+     // nothing here, just waiting
    }
 }

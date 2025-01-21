@@ -24,13 +24,14 @@ int main(int argc, char *argv[])
     dialog.pid = getpid();
     dialog.topic = CHCE_WEJSC;
     dialog.individuals = atoi(argv[1]); // pobranie ilosci osob w tej grupie, atoi:string to int
+    dialog.table_id = -1;
 
     if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
     {
         printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
         exit(1);
     }
-    printf("---Client %d: Wysyla chce wejsc. Osob: %d\n", getpid(), dialog.individuals);
+    printf("---Client %d: Dzien dobry, chcialbym wejsc, stolik dla osob: %d. (wysyla CHCE_WEJSC)\n", getpid(), dialog.individuals);
 
     if (msgrcv(msg_manager_client_id, &dialog, conversation_size, getpid(), 0) == -1)
     { // odbieranie komunikatu WEJDZ LUB BRAK_MIEJSC
@@ -42,7 +43,7 @@ int main(int argc, char *argv[])
 
     if (dialog.topic == WEJDZ)
     {
-        printf("---Client %d: Wszedlem, jem.\n", getpid());
+        printf("---Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
         sleep(2);
         dialog.topic = DO_WIDZENIA;
         if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
@@ -50,7 +51,7 @@ int main(int argc, char *argv[])
             printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
             exit(1);
         }
-        printf("---Client %d: Wychodze. Koncze proces.\n", (int)getpid());
+        printf("---Client %d: Wychodze. Zwalniam stolik %d. Koncze proces.\n", (int)getpid(), dialog.table_id);
         return 0;
     }
 
