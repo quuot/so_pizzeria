@@ -10,7 +10,6 @@
 
 // ftok A - tables
 
-
 int init_shm_tables()
 {
     int shm_id_tables_key;
@@ -37,57 +36,61 @@ void print_tables(struct table *tables_ptr, int tables_total)
 int init_msg_manager_client()
 {
     key_t msg_manager_client_key = ftok(".", 'B');
-   if ( msg_manager_client_key == -1 ) { 
-      perror("utils: Blad ftok dla msg_manager_client_key\n"); 
-      exit(1);
-      }
-   int msg_manager_client_id = msgget(msg_manager_client_key, IPC_CREAT|0600); 
-   if (msg_manager_client_id == -1) {
-      perror("utils: blad tworzenia kolejki komunikatow msg_manager_client\n"); 
-      exit(1);
-   }
-   return msg_manager_client_id;
+    if (msg_manager_client_key == -1)
+    {
+        perror("utils: Blad ftok dla msg_manager_client_key\n");
+        exit(1);
+    }
+    int msg_manager_client_id = msgget(msg_manager_client_key, IPC_CREAT | 0600);
+    if (msg_manager_client_id == -1)
+    {
+        perror("utils: blad tworzenia kolejki komunikatow msg_manager_client\n");
+        exit(1);
+    }
+    return msg_manager_client_id;
 }
 
 int init_msg_client_manager()
 {
     key_t msg_client_manager_key = ftok(".", 'C');
-   if ( msg_client_manager_key == -1 ) { 
-      perror("utils: Blad ftok dla msg_client_manager_key\n"); 
-      exit(1);
-      }
-   int msg_client_manager_id = msgget(msg_client_manager_key, IPC_CREAT|0600); 
-   if (msg_client_manager_id == -1) {
-      perror("utils: blad tworzenia kolejki komunikatow msg_client_manager_id\n"); 
-      exit(1);
-   }
-   return msg_client_manager_id;
+    if (msg_client_manager_key == -1)
+    {
+        perror("utils: Blad ftok dla msg_client_manager_key\n");
+        exit(1);
+    }
+    int msg_client_manager_id = msgget(msg_client_manager_key, IPC_CREAT | 0600);
+    if (msg_client_manager_id == -1)
+    {
+        perror("utils: blad tworzenia kolejki komunikatow msg_client_manager_id\n");
+        exit(1);
+    }
+    return msg_client_manager_id;
 }
 
 void ignore_fire_handler_init()
 { // uruchamia obsluge sygnalu pozaru
-   struct sigaction sa;
-   sa.sa_handler = SIG_IGN; // ignoruje sygnal
-   sigemptyset(&sa.sa_mask);
-   sa.sa_flags = 0;
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN; // ignoruje sygnal
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
 
-   if (sigaction(SIGUSR1, &sa, NULL) == -1)
-   { // obsluga bledu sygnalu pozaru
-      perror("utils: blad ustawienia handlera pozaru\n");
-      exit(1);
-   }
+    if (sigaction(SIGUSR1, &sa, NULL) == -1)
+    { // obsluga bledu sygnalu pozaru
+        perror("utils: blad ustawienia handlera pozaru\n");
+        exit(1);
+    }
 }
 
 void ignore_end_of_the_day_init()
-{ //ignoruje sygnal end of the day
-   struct sigaction sa;
-   sa.sa_handler = SIG_IGN; // ignoruje sygnal
-   sigemptyset(&sa.sa_mask);
-   sa.sa_flags = 0;
+{ // ignoruje sygnal end of the day
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN; // ignoruje sygnal
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
 
-   if (sigaction(SIGUSR2, &sa, NULL) == -1)
-   { 
-      perror("utils: blad ustawienia ignore end of the day\n");
-      exit(1);
-   }
+    if (sigaction(SIGUSR2, &sa, NULL) == -1)
+    {
+        perror("utils: blad ustawienia ignore end of the day\n");
+        exit(1);
+    }
 }

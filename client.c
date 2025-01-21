@@ -17,44 +17,49 @@ int main(int argc, char *argv[])
     fire_handler_init();
     ignore_end_of_the_day_init();
 
-    int msg_manager_client_id = init_msg_manager_client(); //utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
-    int msg_client_manager_id = init_msg_client_manager(); //utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
+    int msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
+    int msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
 
-    struct conversation dialog; //przygotowanie komunikatu CHCE WEJSC
+    struct conversation dialog; // przygotowanie komunikatu
     dialog.pid = getpid();
     dialog.topic = CHCE_WEJSC;
-    dialog.individuals = atoi(argv[1]); //pobranie ilosci osob w tej grupie, atoi:string to int
+    dialog.individuals = atoi(argv[1]); // pobranie ilosci osob w tej grupie, atoi:string to int
 
     if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
-	{
-      printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
-      exit(1);
-	}
+    {
+        printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
+        exit(1);
+    }
     printf("---Client %d: Wysyla chce wejsc. Osob: %d\n", getpid(), dialog.individuals);
 
-    sleep(1);
+    if (msgrcv(msg_manager_client_id, &dialog, conversation_size, getpid(), 0) == -1)
+    { // odbieranie komunikatu WEJDZ LUB BRAK_MIEJSC
+        printf("client: blad odbierania komunikatu\n");
+        exit(1);
+    }
 
-    if (msgrcv(msg_manager_client_id, &dialog, conversation_size, getpid(), 0) == -1) { //odbieranie komunikatu WEJDZ
-      printf("client: blad odbierania komunikatu\n");
-      exit(1);
-	} 
+    // printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals); //debug only
 
-    //printf("CLIENT Odebral: pid=%ld topic=%d ind=%d\n", dialog.pid, dialog.topic, dialog.individuals); //debug only
-    
-    if(dialog.topic == WEJDZ){
+    if (dialog.topic == WEJDZ)
+    {
         printf("---Client %d: Wszedlem, jem.\n", getpid());
         sleep(2);
         dialog.topic = DO_WIDZENIA;
         if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
-	    {
+        {
             printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
             exit(1);
-	    } 
+        }
         printf("---Client %d: Wychodze. Koncze proces.\n", (int)getpid());
         return 0;
     }
 
-    printf("Client: Nie wchodze\n");
+    if (dialog.topic == BRAK_MIEJSC)
+    {
+        printf("---Client %d: Nie zostalem wpuszczony. Koncze proces.\n", (int)getpid());
+        return 0;
+    }
+
     return 0;
 }
 
