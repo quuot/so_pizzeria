@@ -10,6 +10,7 @@
 
 int msg_manager_client_id;
 int msg_client_manager_id;
+int table_id = -1;
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -45,7 +46,7 @@ int main(int argc, char *argv[])
 
     if (dialog.topic == BRAK_MIEJSC)
     {
-        printf("---Client %d: Nie zostalem wpuszczony. (zakonczenie procesu)\n", (int)getpid());
+        printf("---Client %d: Nie zostalem wpuszczony. (zakonczenie procesu) ----------------------------------------------------\n", (int)getpid());
         return 0;
     }
 
@@ -54,7 +55,18 @@ int main(int argc, char *argv[])
 
 void fire_handler(int sig)
 { // logika dzialania podczas pozaru
-    printf("---Client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
+    printf("!!!Client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
+    struct conversation dialog;
+    dialog.pid = getpid();
+    dialog.topic = DO_WIDZENIA;
+    dialog.table_id = table_id;
+
+    if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
+        {
+            printf("Client: blad wysylania komunikatu DO WIDZENIA w sytuacji pozaru (blad z fire_handler())\n");
+            exit(1);
+        }
+
     exit(0);
 }
 
@@ -94,7 +106,9 @@ void wait_for_seat(struct conversation *dialog)
 void take_a_seat(struct conversation dialog)
 {
         printf("---Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
-        sleep(2); //czas "siedzenia" w pizzerii
+        table_id = dialog.table_id;
+        int idle_time = getpid() % 9 + 1;
+        sleep(idle_time); //czas "siedzenia" w pizzerii
         dialog.topic = DO_WIDZENIA;
 
         leave(dialog);

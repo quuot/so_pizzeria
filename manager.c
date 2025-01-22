@@ -15,6 +15,7 @@ int msg_manager_client_id;
 int msg_client_manager_id;
 int end_of_the_day;
 int end_of_the_day_recently_triggered;
+int fire_alarm_triggered = 0;
 int fire_alarm_recently_triggered;
 pid_t clients[CLIENTS_TOTAL][2]; // tablica z klientami w lokalu
 struct table *tables_ptr;        // wskaznik do tablicy z ukladem stolikow w lokalu
@@ -55,13 +56,24 @@ int main()
         end_of_the_day_recently_triggered = 0;
         fire_alarm_recently_triggered = 0;
 
+        // if(fire_alarm_triggered == 1)
+        // {
+        //     printf("!!!Manager: wykryto pozar. Czekam az klienci opuszcza lokal\n");
+        //     while(everyone_left() == 0)
+        //     {
+        //         sleep(1);
+        //     }
+        //     printf("!!!Manager: Wszyscy sie ewakuowali. Zamykam kase\n");
+        //     break;
+        // }
+
         if (msgrcv(msg_client_manager_id, &dialog, conversation_size, 0, 0) == -1)
         { // odbieranie DOWOLNEGO KOMUNIKATU
             if (end_of_the_day_recently_triggered == 1 || fire_alarm_recently_triggered == 1)
             { // zabezpieczenie przed wartoscia -1 po odebraniu sygnalu END OF THE DAY (SIGUSR2)
-                //do nothing
-            } 
-            else 
+              // do nothing
+            }
+            else
             {
                 printf("manager: blad odbierania DOWOLNEGO KOMUNIKATU\n");
                 exit(1);
@@ -70,24 +82,24 @@ int main()
 
         if (dialog.topic == CHCE_WEJSC)
         {
-                int seat_granted_flag = 0;
-    for (int i = 0; i < TABLES_TOTAL; i++)
-    {
-        if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
-        {
-            tables_ptr[i].free = tables_ptr[i].free - dialog.individuals;
-            tables_ptr[i].group_size = dialog.individuals;
-            dialog.table_id = tables_ptr[i].id;
-            allow_client_in(dialog);
-            seat_granted_flag = 1;
-            break;
-        }
-    }
+            int seat_granted_flag = 0;
+            for (int i = 0; i < TABLES_TOTAL; i++)
+            {
+                if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
+                {
+                    tables_ptr[i].free = tables_ptr[i].free - dialog.individuals;
+                    tables_ptr[i].group_size = dialog.individuals;
+                    dialog.table_id = tables_ptr[i].id;
+                    allow_client_in(dialog);
+                    seat_granted_flag = 1;
+                    break;
+                }
+            }
 
-    if (seat_granted_flag == 0)
-    {
-        reject_client(dialog);
-    }
+            if (seat_granted_flag == 0)
+            {
+                reject_client(dialog);
+            }
         }
 
         if (dialog.topic == DO_WIDZENIA)
@@ -118,8 +130,9 @@ int main()
 
 void fire_handler(int sig)
 { // logika dzialania podczas pozaru
-    printf("$$$Manager:\t ALARM ALARM, OGLASZAM POZAR\n");
+    fire_alarm_triggered = 1;
     fire_alarm_recently_triggered = 1;
+    printf("!!!Manager: wplynal alarm POZAR\n");
 }
 
 void fire_handler_init()

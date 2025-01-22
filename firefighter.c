@@ -18,8 +18,8 @@ int main()
     struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
 
     sleep(5);
-    // printf("@@@FF:\t UWAAAAGAAA! POOOOOOOZAR!\n");
-    //kill(0, SIGUSR1);
+    // printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
+    // kill(0, SIGUSR1);
 
     shmdt(tables_ptr);
     return 0;
