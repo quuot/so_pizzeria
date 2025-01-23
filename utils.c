@@ -26,7 +26,7 @@ int init_shm_tables()
 }
 
 void print_tables(struct table *tables_ptr)
-{
+{ // drukowanie tablicy wspoldzielonej TABLES (stoliki) na potrzeby debugu
     for (int i = 0; i < TABLES_TOTAL; i++)
     {
         printf("ID=%ld\tcapacity=%d\tfree=%d\tgroup size=%d\n", tables_ptr[i].id, tables_ptr[i].capacity, tables_ptr[i].free, tables_ptr[i].group_size);

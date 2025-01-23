@@ -11,6 +11,7 @@
 int msg_manager_client_id;
 int msg_client_manager_id;
 int table_id = -1;
+int individuals;
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -21,22 +22,22 @@ void leave(struct conversation dialog);
 
 int main(int argc, char *argv[])
 {
-    //printf("---Client  %d: Proces urchomiony\n", (int)getpid());
-    fire_handler_init(); //inicjacja obslugi sygnalu 'POZAR'
-    ignore_end_of_the_day_init(); //inicjacja obslugi sygnalu "KONIEC DNIA" (ignoruje sygnal)
+    // printf("---Client  %d: Proces urchomiony\n", (int)getpid());
+    fire_handler_init();          // inicjacja obslugi sygnalu 'POZAR'
+    ignore_end_of_the_day_init(); // inicjacja obslugi sygnalu "KONIEC DNIA" (ignoruje sygnal)
 
     msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
     msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
-
+    individuals = atoi(argv[1]);
     struct conversation dialog; // struktura komunikatu
-    dialog.pid = getpid(); 
+    dialog.pid = getpid();
     dialog.topic = CHCE_WEJSC;
-    dialog.individuals = atoi(argv[1]); // pobranie ilosci osob w tej grupie, atoi:string to int
-    dialog.table_id = -1; //domyslnie: -1 = brak przypisanego stolika
+    dialog.individuals = individuals; // pobranie ilosci osob w tej grupie, atoi:string to int
+    dialog.table_id = -1;             // domyslnie: -1 = brak przypisanego stolika
 
-    ask_for_seat(dialog); //wysyla komunikat CHCE_WEJSC do Managera
+    ask_for_seat(dialog); // wysyla komunikat CHCE_WEJSC do Managera
 
-    wait_for_seat(&dialog); //oczekuje na zgode lub odmowe wejscia
+    wait_for_seat(&dialog); // oczekuje na zgode lub odmowe wejscia
 
     if (dialog.topic == WEJDZ) // Zgoda na wyjscie od Managera
     {
@@ -60,12 +61,13 @@ void fire_handler(int sig)
     dialog.pid = getpid();
     dialog.topic = DO_WIDZENIA;
     dialog.table_id = table_id;
+    dialog.individuals = individuals;
 
     if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
-        {
-            printf("Client: blad wysylania komunikatu DO WIDZENIA w sytuacji pozaru (blad z fire_handler())\n");
-            exit(1);
-        }
+    {
+        printf("Client %d: blad wysylania komunikatu DO WIDZENIA w sytuacji pozaru (blad z fire_handler())\n", getpid());
+        exit(1);
+    }
 
     exit(0);
 }
@@ -86,7 +88,7 @@ void fire_handler_init()
 
 void ask_for_seat(struct conversation dialog)
 {
-        if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
+    if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu CHCE WEJSC
     {
         printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
         exit(1);
@@ -96,8 +98,8 @@ void ask_for_seat(struct conversation dialog)
 
 void wait_for_seat(struct conversation *dialog)
 {
-    if (msgrcv(msg_manager_client_id, dialog, conversation_size, getpid(), 0) == -1) //oczekuje na odebranie komunikatu o swoim PIDzie - zgoda na wyjscie
-    { 
+    if (msgrcv(msg_manager_client_id, dialog, conversation_size, getpid(), 0) == -1) // oczekuje na odebranie komunikatu o swoim PIDzie - zgoda na wyjscie
+    {
         printf("client: blad odbierania komunikatu\n");
         exit(1);
     }
@@ -105,22 +107,22 @@ void wait_for_seat(struct conversation *dialog)
 
 void take_a_seat(struct conversation dialog)
 {
-        printf("---Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
-        table_id = dialog.table_id;
-        int idle_time = getpid() % 9 + 1;
-        sleep(idle_time); //czas "siedzenia" w pizzerii
-        dialog.topic = DO_WIDZENIA;
+    printf("---Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
+    table_id = dialog.table_id;
+    int idle_time = getpid() % 9 + 1;
+    sleep(idle_time); // czas "siedzenia" w pizzerii
+    dialog.topic = DO_WIDZENIA;
 
-        leave(dialog);
+    leave(dialog);
 
-        printf("---Client %d: Wychodze. Zwalniam stolik %d. (zakonczenie procesu)\n", (int)getpid(), dialog.table_id);
+    printf("---Client %d: Wychodze. Zwalniam stolik %d. (zakonczenie procesu)\n", (int)getpid(), dialog.table_id);
 }
 
 void leave(struct conversation dialog)
 {
-        if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
-        {
-            printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
-            exit(1);
-        }
+    if (msgsnd(msg_client_manager_id, &dialog, conversation_size, 0) == -1) // wyslanie komunikatu DO WIDZENIA
+    {
+        printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
+        exit(1);
+    }
 }

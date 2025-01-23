@@ -4,15 +4,15 @@
 #define TABLE_TWO 3
 #define TABLE_THREE 2
 #define TABLE_FOUR 1
-#define TABLES_TOTAL 10
-#define CLIENTS_TOTAL 20
+#define TABLES_TOTAL TABLE_ONE + TABLE_TWO + TABLE_THREE + TABLE_FOUR
+#define CLIENTS_TOTAL TABLE_ONE + (TABLE_TWO * 2) + (TABLE_THREE * 3) + (TABLE_FOUR * 4)
 
 #define CHCE_WEJSC 1
 #define WEJDZ 2
 #define BRAK_MIEJSC 3
 #define DO_WIDZENIA 4
 #define EWAKUACJA 5
-#define conversation_size 3 * sizeof(int)
+#define conversation_size 3 * sizeof(int) // wielkosc struktury conversation bez uzglednienia wielkosci long int pid
 
 struct table
 {

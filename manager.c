@@ -32,6 +32,8 @@ void allow_client_in(struct conversation dialog);
 void reject_client(struct conversation dialog);
 void client_leaves(struct conversation dialog);
 void provide_seat(struct conversation dialog);
+void grant_seat(struct conversation dialog);
+void walk_to_the_door(struct conversation dialog);
 
 int main()
 {
@@ -82,35 +84,12 @@ int main()
 
         if (dialog.topic == CHCE_WEJSC)
         {
-            int seat_granted_flag = 0;
-            for (int i = 0; i < TABLES_TOTAL; i++)
-            {
-                if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
-                {
-                    tables_ptr[i].free = tables_ptr[i].free - dialog.individuals;
-                    tables_ptr[i].group_size = dialog.individuals;
-                    dialog.table_id = tables_ptr[i].id;
-                    allow_client_in(dialog);
-                    seat_granted_flag = 1;
-                    break;
-                }
-            }
-
-            if (seat_granted_flag == 0)
-            {
-                reject_client(dialog);
-            }
+            grant_seat(dialog);
         }
 
         if (dialog.topic == DO_WIDZENIA)
         {
-            tables_ptr[dialog.table_id].free = tables_ptr[dialog.table_id].free + dialog.individuals;
-            if (tables_ptr[dialog.table_id].free == tables_ptr[dialog.table_id].capacity)
-            {
-                tables_ptr[dialog.table_id].group_size = 0;
-            }
-
-            client_leaves(dialog);
+            walk_to_the_door(dialog);
         }
 
         if (end_of_the_day == 1)
@@ -123,6 +102,13 @@ int main()
     }
 
     printf("$$$MANAGER:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\n");
+
+    if (shmdt(tables_ptr) == -1)
+    {
+        perror("Blad odlaczania pamieci wspoldzielonej (shmdt).");
+        exit(1);
+    }
+
     return 0;
 }
 
@@ -132,7 +118,6 @@ void fire_handler(int sig)
 { // logika dzialania podczas pozaru
     fire_alarm_triggered = 1;
     fire_alarm_recently_triggered = 1;
-    printf("!!!Manager: wplynal alarm POZAR\n");
 }
 
 void fire_handler_init()
@@ -267,4 +252,37 @@ void provide_seat(struct conversation dialog)
     {
         reject_client(dialog);
     }
+}
+
+void grant_seat(struct conversation dialog)
+{
+    int seat_granted_flag = 0;
+    for (int i = 0; i < TABLES_TOTAL; i++)
+    {
+        if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
+        {
+            tables_ptr[i].free = tables_ptr[i].free - dialog.individuals;
+            tables_ptr[i].group_size = dialog.individuals;
+            dialog.table_id = tables_ptr[i].id;
+            allow_client_in(dialog);
+            seat_granted_flag = 1;
+            break;
+        }
+    }
+
+    if (seat_granted_flag == 0)
+    {
+        reject_client(dialog);
+    }
+}
+
+void walk_to_the_door(struct conversation dialog)
+{
+    tables_ptr[dialog.table_id].free = tables_ptr[dialog.table_id].free + dialog.individuals;
+    if (tables_ptr[dialog.table_id].free == tables_ptr[dialog.table_id].capacity)
+    {
+        tables_ptr[dialog.table_id].group_size = 0;
+    }
+
+    client_leaves(dialog);
 }

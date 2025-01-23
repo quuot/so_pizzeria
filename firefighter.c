@@ -13,14 +13,18 @@
 
 int main()
 {
-    ignore_end_of_the_day_init();
-    int shm_id_tables = init_shm_tables(); // pozyskanie tablicy TABLES
+    ignore_end_of_the_day_init();          // ignoruje sygal KONIEC DNIA
+    ignore_fire_handler_init();            // ignoruje sygnal POZAR
+    int shm_id_tables = init_shm_tables(); // pozyskanie dostepu tablicy TABLES (stoliki)
     struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
 
-    sleep(5);
-    // printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
-    // kill(0, SIGUSR1);
+    sleep(7);
+
+    printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
+    kill(0, SIGUSR1);
 
     shmdt(tables_ptr);
+
+    printf("FF: zakonczenie.\n");
     return 0;
 }

@@ -10,11 +10,12 @@
 #include "utils.h"
 
 int shm_id_tables; // przypisanie wartosci w init_tables()
+struct table *tables_ptr;
 int msg_manager_client_id;
 int msg_client_manager_id;
 int fire_alarm_triggered = 0;
 
-void exit_handler();
+void exit_handler(int code);
 void sigint_handler(int sig);
 void sigint_hadler_init();
 struct table *init_tables();
@@ -23,21 +24,24 @@ void create_client(int individuals);
 void wait_all_processes();
 void fire_handler_init();
 void fire_handler(int sig);
+void sigterm_handler_init();
+void sigterm_handler(int sig);
 
 int main()
 {
    sigint_hadler_init();         // inicjalizacja obslugi sygnalu SIGINT
    fire_handler_init();          // inicjalizacja obslugi sygnalu POZAR
+   sigterm_handler_init();       // inicjalizacja obslugi sygnalu SIGTERM (pierwszy sygnal jest ignorowany, potem default)
    ignore_end_of_the_day_init(); // inicjalizacja obslugi sygnalu END OF THE DAY
 
-   struct table *tables_ptr = init_tables();          // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
+   tables_ptr = init_tables();                        // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
    msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client
    msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager
 
    create_manager_firefighter(); // uruchomienie procesu manager i firefighter
    sleep(1);
 
-   for (int i = 0; i < 30; i++)
+   for (int i = 0; i < 10; i++)
    {
       if (fire_alarm_triggered == 1)
       {
@@ -53,38 +57,54 @@ int main()
    kill(0, SIGUSR2); // sygnal KONIEC DNIA, nie bedzie wiecej klientow
 
    wait_all_processes();
-   shmdt(tables_ptr);                             // odlaczanie pamieci tables
-   shmctl(shm_id_tables, IPC_RMID, NULL);         // usuwanie pamieci wspoldzielonej - tables
-   msgctl(msg_manager_client_id, IPC_RMID, NULL); // usuniecie kolejki komunikatow - manager-client
-   msgctl(msg_client_manager_id, IPC_RMID, NULL); // usuniecie kolejki komunikatow - client-manager
 
+   exit_handler(0); // zamkniecie zasobow IPC, terminacja procesow
+   printf("Main: zakonczenie.\n");
    return 0;
 }
 
 //===================FUNCJE=================================================================================================
 
-void exit_handler() // funkcja SIGINT - obsluga przerwania
+void exit_handler(int code)
 {
-   msgctl(msg_manager_client_id, IPC_RMID, NULL);
-   msgctl(msg_client_manager_id, IPC_RMID, NULL);
-   shmctl(shm_id_tables, IPC_RMID, NULL);
-   kill(0, SIGTERM); // zabija procesy z process-group
-   // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
-   exit(1);
+   // funkcja obsguje zamkniecie programu mainp. Parametr: 0-zakonczenie prawidlowe, >0-zakonczenie bledem
+
+   if (shmdt(tables_ptr) == -1)
+   { // odlaczenie pamieci wspoldzielonej TABLES (uklad stolikow)
+      perror("Mainp: Blad odlaczania pamieci wspoldzielonej (shmdt).");
+      exit(1);
+   }
+
+   if (shmctl(shm_id_tables, IPC_RMID, NULL) == -1)
+   { // usuniecie pamieci wspoldzielonej TABLES (uklad stolikow)
+      perror("Mainp: Blad usuwania pamieci wspoldzielonej (shmctl).");
+      exit(1);
+   }
+
+   if (msgctl(msg_manager_client_id, IPC_RMID, NULL) == -1)
+   { // usuniecie kolejki komunikatow MANAGER -> CLIENT
+      perror("Mainp: Blad usuwania kolejki komunikatow manager-client (msgctl).");
+      exit(1);
+   }
+
+   if (msgctl(msg_client_manager_id, IPC_RMID, NULL) == -1)
+   { // usuniecie kolejki komunikatow CLIENT -> MANAGER
+      perror("Mainp: Blad usuwania kolejki komunikatow client-manager (msgctl).");
+      exit(1);
+   }
+   kill(0, SIGTERM);
+   exit(code);
 }
 
-void sigint_handler(int sig) // funkcja SIGINT - obsluga przerwania
-{
-   msgctl(msg_manager_client_id, IPC_RMID, NULL);
-   msgctl(msg_client_manager_id, IPC_RMID, NULL);
-   shmctl(shm_id_tables, IPC_RMID, NULL);
-   // semctl(semID,0,IPC_RMID,NULL); TODO:zamkniecie semafora
-   exit(1);
+void sigint_handler(int sig)
+{ // funkcja SIGINT - obsluga przerwania
+   kill(0, SIGTERM);
+   exit_handler(1);
 }
 
 void sigint_hadler_init()
-{
-   struct sigaction act; // obsluga sygnalu SIGINT
+{ // inicjalizacja obslugi SIGINT
+   struct sigaction act;
    act.sa_handler = sigint_handler;
    sigemptyset(&act.sa_mask);
    act.sa_flags = 0;
@@ -95,12 +115,12 @@ struct table *init_tables()
 {
    struct table tables[TABLES_TOTAL]; // inicjalizacja tablicy tables
 
-   shm_id_tables = init_shm_tables();                                        // inicjalizacja pamieci wspoldzielonej: tables
+   shm_id_tables = init_shm_tables();                                        // inicjalizacja pamieci wspoldzielonej: TABLES (stoliki)(utils.h)
    struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0); // pobranie wskaznika pamieci wspoldzielonej tables
    if (tables_ptr == (void *)-1)
    {
-      perror("main: blad shmat dla TABLES\n");
-      exit_handler();
+      perror("Mainp: blad shmat dla TABLES\n");
+      exit_handler(1);
    }
 
    for (int i = 0; i < TABLE_ONE; i++)
@@ -141,7 +161,7 @@ void create_manager_firefighter()
    {
    case -1:
       perror("mainp: Blad fork managera");
-      exit_handler();
+      exit_handler(1);
    case 0:
       execl("./bin/manager", "manager", NULL);
    }
@@ -150,7 +170,7 @@ void create_manager_firefighter()
    {
    case -1:
       perror("mainp: Blad fork firefightera");
-      exit_handler();
+      exit_handler(1);
    case 0:
       execl("./bin/firefighter", "firefighter", NULL);
    }
@@ -169,13 +189,13 @@ void create_client(int individuals)
       {
       case -1:
          perror("mainp: Blad fork kienta");
-         exit_handler();
+         exit_handler(1);
       case 0:
          char tmp_str[30];
          snprintf(tmp_str, sizeof(tmp_str), "%d", individuals);
          execl("./bin/client", "client", tmp_str, NULL);
          perror("main: blad execl ze zmienna iloscia klientow");
-         exit_handler();
+         exit_handler(1);
       }
    }
    else
@@ -201,13 +221,40 @@ void fire_handler_init()
 
    if (sigaction(SIGUSR1, &sa, NULL) == -1)
    { // obsluga bledu sygnalu pozaru
-      perror("mainp: blad ustawienia handlera pozaru\n");
-      exit_handler;
+      perror("Mainp: blad ustawienia handlera pozaru\n");
+      exit_handler(1);
    }
 }
 
 void fire_handler(int sig)
 {
    fire_alarm_triggered = 1;
-   printf("!!!Mainp: wplynal alarm POZAR\n");
+}
+
+void sigterm_handler_init()
+{ // uruchamia obsluge sygnalu SIGTERM. Sygnal jest ignorowany 1 raz. Potem dziala standardowo.
+   struct sigaction sa;
+   sa.sa_handler = sigterm_handler;
+   sigemptyset(&sa.sa_mask);
+   sa.sa_flags = 0;
+
+   if (sigaction(SIGTERM, &sa, NULL) == -1)
+   {
+      perror("Mainp: blad ustawienia handlera sigterm nr 1\n");
+      exit_handler(1);
+   }
+}
+
+void sigterm_handler(int sig)
+{ // obsluga sygnalu SIGTERM: pierwszy sygnal jest ignorowany, potem dzialanie defaultowe.
+   struct sigaction sa;
+   sa.sa_handler = SIG_DFL; // ignoruje sygnal
+   sigemptyset(&sa.sa_mask);
+   sa.sa_flags = 0;
+
+   if (sigaction(SIGTERM, &sa, NULL) == -1)
+   {
+      perror("Mainp: blad ustawienia handlera sigterm nr 1\n");
+      exit_handler(1);
+   }
 }
