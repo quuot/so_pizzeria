@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 
     if (dialog.topic == BRAK_MIEJSC)
     {
-        printf("---Client %d: Nie zostalem wpuszczony. (zakonczenie procesu) ----------------------------------------------------\n", (int)getpid());
+        printf("---Client %d: Nie zostalem wpuszczony. (zakonczenie procesu)  :(   :(   :(\n", (int)getpid());
         return 0;
     }
 

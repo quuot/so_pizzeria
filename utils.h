@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#define TABLE_ONE 4
-#define TABLE_TWO 3
-#define TABLE_THREE 2
+#define TABLE_ONE 2
+#define TABLE_TWO 2
+#define TABLE_THREE 1
 #define TABLE_FOUR 1
 #define TABLES_TOTAL TABLE_ONE + TABLE_TWO + TABLE_THREE + TABLE_FOUR
 #define CLIENTS_TOTAL TABLE_ONE + (TABLE_TWO * 2) + (TABLE_THREE * 3) + (TABLE_FOUR * 4)

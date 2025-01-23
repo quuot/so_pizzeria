@@ -19,7 +19,7 @@ void exit_handler(int code);
 void sigint_handler(int sig);
 void sigint_hadler_init();
 struct table *init_tables();
-void create_manager_firefighter();
+void create_manager_firefighter(int seconds_untill_fire);
 void create_client(int individuals);
 void wait_all_processes();
 void fire_handler_init();
@@ -38,7 +38,14 @@ int main()
    msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client
    msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager
 
-   create_manager_firefighter(); // uruchomienie procesu manager i firefighter
+   int time_untill_fire = 8;
+
+   printf("W lokalu mamy:\n%d stolik(i) jednoosobowe,\n%d stolik(i) dwuosobowe,\n%d stolik(i) trzyosobowe,\n%d stolik(i) czterosobowe\n", TABLE_ONE, TABLE_TWO, TABLE_THREE, TABLE_FOUR);
+   printf("Lokal miesci lacznie %d stolikow i maksymalnie %d klientow.\n", TABLES_TOTAL, CLIENTS_TOTAL);
+   printf("Alarm pozarowy nastapi za %d sekund\n", time_untill_fire);
+   printf("========================================================================\n\n");
+
+   create_manager_firefighter(time_untill_fire); // uruchomienie procesu manager i firefighter
    sleep(1);
 
    for (int i = 0; i < 10; i++)
@@ -48,7 +55,8 @@ int main()
          break;
       }
 
-      int people = i % 3 + 1;
+      create_client(1);
+      int people = i % 2 + 2;
       create_client(people);
       sleep(1);
    }
@@ -155,7 +163,7 @@ struct table *init_tables()
    return tables_ptr;
 }
 
-void create_manager_firefighter()
+void create_manager_firefighter(int seconds_untill_fire)
 {
    switch (fork()) // tworzenie procesu managera
    {
@@ -172,7 +180,9 @@ void create_manager_firefighter()
       perror("mainp: Blad fork firefightera");
       exit_handler(1);
    case 0:
-      execl("./bin/firefighter", "firefighter", NULL);
+      char tmp_str[30];
+      snprintf(tmp_str, sizeof(tmp_str), "%d", seconds_untill_fire);
+      execl("./bin/firefighter", "firefighter", tmp_str, NULL);
    }
 }
 

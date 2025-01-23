@@ -142,11 +142,11 @@ int everyone_left() // sprawdzanie czy wszyscy wyszli. Lokal pusty:1 | są klien
         if (clients[i][0] != -1)
         {
             empty = 0;
-            printf("$$$Manager:\t wiecej klientow nie bedzie ale pizzeria NIE JEST PUSTA. Czekam.\n");
+            printf("$$$Manager:\t Wiecej klientow nie bedzie ale pizzeria NIE JEST PUSTA. Czekam.\n");
             return empty;
         }
     }
-    printf("$$$Manager:\t wiecej klientow nie bedzie i pizzeria JEST PUSTA. Mozna zamykac.\n");
+    printf("$$$Manager:\t Wiecej klientow nie bedzie i pizzeria JEST PUSTA. Mozna zamykac kase.\n");
     return empty;
 }
 
