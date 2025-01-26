@@ -9,16 +9,18 @@
 #include <unistd.h>
 #include "utils.h"
 
-int shm_id_tables; // przypisanie wartosci w init_tables()
+int shm_id_tables; // przypisanie wartosci znajduje sie w init_tables()
 struct table *tables_ptr;
 int msg_manager_client_id;
 int msg_client_manager_id;
 int fire_alarm_triggered = 0;
+int shm_id_pizzeria1; //utworzenie pamieci wspoldzielonej dla informacji o lokalu
+struct world *pizzeria_1_ptr;
 
 void exit_handler(int code);
 void sigint_handler(int sig);
 void sigint_hadler_init();
-struct table *init_tables();
+struct table *init_tables(struct world* pizzeria);
 void create_manager_firefighter(int seconds_untill_fire);
 void create_client(int individuals);
 void wait_all_processes();
@@ -34,29 +36,52 @@ int main()
    sigterm_handler_init();       // inicjalizacja obslugi sygnalu SIGTERM (pierwszy sygnal jest ignorowany, potem default)
    ignore_end_of_the_day_init(); // inicjalizacja obslugi sygnalu END OF THE DAY
 
-   tables_ptr = init_tables();                        // utworzenie tabeli, wypelnienie danymi, przekazanie do SHM
+   shm_id_pizzeria1 = init_shm_world();
+   pizzeria_1_ptr = (struct world *)shmat(shm_id_pizzeria1, NULL, 0);
+
+   if(pizzeria_1_ptr == (void *)-1) {
+      perror("main: Blad shmat dla pizzeria_1_ptr.");
+      exit_handler(1);
+   }
+
+   printf("Czas do aktywacji strazaka [sek, 0=brak aktywacji]: ");
+   scanf("%d", &pizzeria_1_ptr->time_to_fire);
+   printf("Ilosc stolikow 1 osobowych: ");
+   scanf("%d", &pizzeria_1_ptr->x1);
+   printf("Ilosc stolikow 2 osobowych: ");
+   scanf("%d", &pizzeria_1_ptr->x2);
+   printf("Ilosc stolikow 3 osobowych: ");
+   scanf("%d", &pizzeria_1_ptr->x3);
+   printf("Ilosc stolikow 4 osobowych: ");
+   scanf("%d", &pizzeria_1_ptr->x4);
+   printf("Ilosc klientow: ");
+   scanf("%d", &pizzeria_1_ptr->clients);
+
+   pizzeria_1_ptr->tables_total = pizzeria_1_ptr->x1 + pizzeria_1_ptr->x2 + pizzeria_1_ptr->x3 + pizzeria_1_ptr->x4;
+   pizzeria_1_ptr->clients_total = pizzeria_1_ptr->x1 + (pizzeria_1_ptr->x2 * 2) + (pizzeria_1_ptr->x3 * 3) + (pizzeria_1_ptr->x4 * 4);
+
+
+
+   tables_ptr = init_tables(pizzeria_1_ptr);              // utworzenie tabeli, wypelnienie danymi, przekazanie do shared memory
    msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client
    msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager
 
-   int time_untill_fire = 8;
 
-   printf("W lokalu mamy:\n%d stolik(i) jednoosobowe,\n%d stolik(i) dwuosobowe,\n%d stolik(i) trzyosobowe,\n%d stolik(i) czterosobowe\n", TABLE_ONE, TABLE_TWO, TABLE_THREE, TABLE_FOUR);
-   printf("Lokal miesci lacznie %d stolikow i maksymalnie %d klientow.\n", TABLES_TOTAL, CLIENTS_TOTAL);
-   printf("Alarm pozarowy nastapi za %d sekund\n", time_untill_fire);
+   printf("\nW lokalu mamy:\n%d stolik(i) jednoosobowe,\n%d stolik(i) dwuosobowe,\n%d stolik(i) trzyosobowe,\n%d stolik(i) czterosobowe\n", pizzeria_1_ptr->x1, pizzeria_1_ptr->x2, pizzeria_1_ptr->x3, pizzeria_1_ptr->x4);
+   printf("Lokal miesci lacznie %d stolikow i maksymalnie %d klientow.\n", pizzeria_1_ptr->tables_total , pizzeria_1_ptr->clients_total);
+   printf("Alarm pozarowy nastapi za %d sekund\n", pizzeria_1_ptr->time_to_fire);
    printf("========================================================================\n\n");
 
-   create_manager_firefighter(time_untill_fire); // uruchomienie procesu manager i firefighter
+   create_manager_firefighter(pizzeria_1_ptr->time_to_fire); // uruchomienie procesu manager i firefighter
    sleep(1);
 
-   for (int i = 0; i < 10; i++)
+   for (int i = 0; i < pizzeria_1_ptr->clients; i++)
    {
-      if (fire_alarm_triggered == 1)
+      if (fire_alarm_triggered == 1) //brak produkcji nowych klientow po alarmie pozarowym
       {
          break;
       }
-
-      create_client(1);
-      int people = i % 2 + 2;
+      int people = i % 3 + 1;
       create_client(people);
       sleep(1);
    }
@@ -119,11 +144,11 @@ void sigint_hadler_init()
    sigaction(SIGINT, &act, 0);
 }
 
-struct table *init_tables()
+struct table *init_tables(struct world *pizzeria)
 {
-   struct table tables[TABLES_TOTAL]; // inicjalizacja tablicy tables
+   //struct table tables[pizzeria.tables_total]; // prawdopodobnie niepotrzebne
 
-   shm_id_tables = init_shm_tables();                                        // inicjalizacja pamieci wspoldzielonej: TABLES (stoliki)(utils.h)
+   shm_id_tables = init_shm_tables(pizzeria);                                        // inicjalizacja pamieci wspoldzielonej: TABLES (stoliki)(utils.h)
    struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0); // pobranie wskaznika pamieci wspoldzielonej tables
    if (tables_ptr == (void *)-1)
    {
@@ -131,35 +156,34 @@ struct table *init_tables()
       exit_handler(1);
    }
 
-   for (int i = 0; i < TABLE_ONE; i++)
+   for (int i = 0; i < pizzeria->x1; i++)
    { // inicjalizacja stolikow 1osobowych
       tables_ptr[i].id = i;
       tables_ptr[i].capacity = 1;
       tables_ptr[i].free = 1;
       tables_ptr[i].group_size = 0;
    }
-   for (int i = TABLE_ONE; i < (TABLE_ONE + TABLE_TWO); i++)
+   for (int i = pizzeria->x1; i < (pizzeria->x1 + pizzeria->x2); i++)
    { // inicjalizacja stolikow 2osobowych
       tables_ptr[i].id = i;
       tables_ptr[i].capacity = 2;
       tables_ptr[i].free = 2;
       tables_ptr[i].group_size = 0;
    }
-   for (int i = (TABLE_ONE + TABLE_TWO); i < (TABLE_ONE + TABLE_TWO + TABLE_THREE); i++)
+   for (int i = (pizzeria->x1 + pizzeria->x2); i < (pizzeria->x1 + pizzeria->x2 + pizzeria->x3); i++)
    { // inicjalizacja stolikow 3osobowych
       tables_ptr[i].id = i;
       tables_ptr[i].capacity = 3;
       tables_ptr[i].free = 3;
       tables_ptr[i].group_size = 0;
    }
-   for (int i = (TABLE_ONE + TABLE_TWO + TABLE_THREE); i < (TABLE_ONE + TABLE_TWO + TABLE_THREE + TABLE_FOUR); i++)
+   for (int i = (pizzeria->x1 + pizzeria->x2 + pizzeria->x3); i < (pizzeria->x1 + pizzeria->x2 + pizzeria->x3 + pizzeria->x4); i++)
    { // inicjalizacja stolikow 4osobowych
       tables_ptr[i].id = i;
       tables_ptr[i].capacity = 4;
       tables_ptr[i].free = 4;
       tables_ptr[i].group_size = 0;
    }
-
    return tables_ptr;
 }
 

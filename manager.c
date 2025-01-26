@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "utils.h"
 
+
 // #include <unistd.h>
 // #include <time.h>
 int msg_manager_client_id;
@@ -17,8 +18,9 @@ int end_of_the_day;
 int end_of_the_day_recently_triggered;
 int fire_alarm_triggered = 0;
 int fire_alarm_recently_triggered;
-pid_t clients[CLIENTS_TOTAL][2]; // tablica z klientami w lokalu
+pid_t clients[NOTEBOOK_LENGTH][2]; // tablica z klientami w lokalu
 struct table *tables_ptr;        // wskaznik do tablicy z ukladem stolikow w lokalu
+struct world *world_ptr; 
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -39,9 +41,13 @@ int main()
 {
     fire_handler_init();
     end_of_the_day_handler_init();
-    int shm_id_tables = init_shm_tables();
+
+    int shm_id_world = init_shm_world();
+    world_ptr = (struct world *)shmat(shm_id_world, NULL, 0); //pobranie wskaznika do struktury "świat", pizzeria_1_ptr w mainp
+
+    int shm_id_tables = init_shm_tables(world_ptr);
     tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0); // pobranie wskaznika do tablicy z ukladem stolikow w lokalu
-    init_clients_tab();                                         // inicjalizacja tablicy - lokal jest pusty
+    init_clients_tab();                                         // inicjalizacja tablicy lokalnej - lokal jest pusty/poczatek dnia
     msg_manager_client_id = init_msg_manager_client();          // utworzenie ID kolejki manager-client, MANAGER WYSYLA
     msg_client_manager_id = init_msg_client_manager();          // utworzenie ID kolejki client-manager, MANAGER ODBIERA
 
@@ -137,7 +143,7 @@ void fire_handler_init()
 int everyone_left() // sprawdzanie czy wszyscy wyszli. Lokal pusty:1 | są klienci: 0
 {
     int empty = 1;
-    for (int i = 0; i < CLIENTS_TOTAL; i++)
+    for (int i = 0; i < world_ptr->clients_total; i++)
     {
         if (clients[i][0] != -1)
         {
@@ -172,7 +178,7 @@ void end_of_the_day_handler_init()
 
 void init_clients_tab()
 {
-    for (int i = 0; i < CLIENTS_TOTAL; i++) // wypelnianie tablicy klientow -1 (-1 to brak klienta w danym slocie)
+    for (int i = 0; i < world_ptr->clients_total; i++) // wypelnianie tablicy klientow -1 (-1 to brak klienta w danym slocie)
     {
         clients[i][0] = -1;
     }
@@ -180,7 +186,7 @@ void init_clients_tab()
 
 void add_client(struct conversation *dialog)
 {
-    for (int i = 0; i < CLIENTS_TOTAL; i++)
+    for (int i = 0; i < world_ptr->clients_total; i++)
     { // dodowanie klienta do bazy
         if (clients[i][0] == -1)
         {
@@ -193,7 +199,7 @@ void add_client(struct conversation *dialog)
 
 void remove_client(struct conversation *dialog)
 {
-    for (int i = 0; i < CLIENTS_TOTAL; i++)
+    for (int i = 0; i < world_ptr->clients_total; i++)
     {
         if (dialog->pid == clients[i][0])
         {
@@ -235,7 +241,7 @@ void client_leaves(struct conversation dialog)
 void provide_seat(struct conversation dialog)
 {
     int seat_granted_flag = 0;
-    for (int i = 0; i < TABLES_TOTAL; i++)
+    for (int i = 0; i < world_ptr->tables_total; i++)
     {
         if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
         {
@@ -257,7 +263,7 @@ void provide_seat(struct conversation dialog)
 void grant_seat(struct conversation dialog)
 {
     int seat_granted_flag = 0;
-    for (int i = 0; i < TABLES_TOTAL; i++)
+    for (int i = 0; i < world_ptr->tables_total; i++)
     {
         if (tables_ptr[i].free >= dialog.individuals && (tables_ptr[i].group_size == 0 || tables_ptr[i].group_size == dialog.individuals))
         {

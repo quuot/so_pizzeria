@@ -13,19 +13,17 @@
 
 int main(int argc, char *argv[])
 {
-    ignore_end_of_the_day_init();          // ignoruje sygal KONIEC DNIA
+    ignore_end_of_the_day_init();          // ignoruje sygal KONIEC DNIA, strazak czuwa do konca
     ignore_fire_handler_init();            // ignoruje sygnal POZAR
-    int shm_id_tables = init_shm_tables(); // pozyskanie dostepu tablicy TABLES (stoliki)
-    struct table *tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0);
 
-    int seconds_untill_fire = atoi(argv[1]);
-    sleep(seconds_untill_fire);
+    int seconds_untill_fire = atoi(argv[1]); //pobranie czasu do wywolania alarmu
 
-    printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
-    kill(0, SIGUSR1);
+    if(seconds_untill_fire > 0) { //brak pozaru dla wartosci 0
+        sleep(seconds_untill_fire);
+        printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
+        kill(0, SIGUSR1);
+    }
 
-    shmdt(tables_ptr);
 
-    // printf("FF: zakonczenie.\n");
     return 0;
 }
