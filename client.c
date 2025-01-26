@@ -7,11 +7,13 @@
 #include <sys/sem.h>
 #include <signal.h>
 #include "utils.h"
+#include <time.h>
 
 int msg_manager_client_id;
 int msg_client_manager_id;
 int table_id = -1;
 int individuals;
+char *text_color;
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -19,15 +21,21 @@ void ask_for_seat(struct conversation dialog);
 void wait_for_seat(struct conversation *dialog);
 void take_a_seat(struct conversation dialog);
 void leave(struct conversation dialog);
+char *random_color();
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
     // printf("---Client  %d: Proces urchomiony\n", (int)getpid());
     fire_handler_init();          // inicjacja obslugi sygnalu 'POZAR'
     ignore_end_of_the_day_init(); // inicjacja obslugi sygnalu "KONIEC DNIA" (ignoruje sygnal)
 
     msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client, TU KLIENT ODBIERA
     msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager, TU KLIENT WYSYLA
+   
+    text_color = random_color();
+   
+   
     individuals = atoi(argv[1]);
     struct conversation dialog; // struktura komunikatu
     dialog.pid = getpid();
@@ -47,7 +55,7 @@ int main(int argc, char *argv[])
 
     if (dialog.topic == BRAK_MIEJSC)
     {
-        printf("---Client %d: Nie zostalem wpuszczony. (zakonczenie procesu)  :(   :(   :(\n", (int)getpid());
+        cprintf(text_color, "Client %d: Nie zostalem wpuszczony. (zakonczenie procesu)  :(   :(   :(\n", (int)getpid());
         return 0;
     }
 
@@ -56,7 +64,7 @@ int main(int argc, char *argv[])
 
 void fire_handler(int sig)
 { // logika dzialania podczas pozaru
-    printf("!!!Client: KLIENT %d ODEBRAL POZAR!!!! ZACZYNAM EWAKUACJE\n", (int)getpid());
+    cprintf(text_color, "Client: KLIENT %d ODEBRAL POZAR! ZACZYNAM EWAKUACJE!\n", (int)getpid());
     struct conversation dialog;
     dialog.pid = getpid();
     dialog.topic = DO_WIDZENIA;
@@ -93,7 +101,7 @@ void ask_for_seat(struct conversation dialog)
         printf("Client: blad wysylania komunikatu CHCE WEJSC\n");
         exit(1);
     }
-    printf("---Client %d: Dzien dobry, chcialbym wejsc, stolik dla %d osob. (wysyla CHCE_WEJSC)\n", getpid(), dialog.individuals);
+    cprintf(text_color, "Client %d: Dzien dobry, chcialbym wejsc, stolik dla %d osob. (wysyla CHCE_WEJSC)\n", getpid(), dialog.individuals);
 }
 
 void wait_for_seat(struct conversation *dialog)
@@ -107,7 +115,7 @@ void wait_for_seat(struct conversation *dialog)
 
 void take_a_seat(struct conversation dialog)
 {
-    printf("---Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
+    cprintf(text_color, "Client %d: Wszedlem, siadam do stolika %d, jem wspaniala pizze bez kechupu.\n", getpid(), dialog.table_id);
     table_id = dialog.table_id;
     int idle_time = getpid() % 9 + 1;
     sleep(idle_time); // czas "siedzenia" w pizzerii
@@ -115,7 +123,7 @@ void take_a_seat(struct conversation dialog)
 
     leave(dialog);
 
-    printf("---Client %d: Wychodze. Zwalniam stolik %d. (zakonczenie procesu)\n", (int)getpid(), dialog.table_id);
+    cprintf(text_color, "Client %d: Wychodze. Zwalniam stolik %d. (zakonczenie procesu)\n", (int)getpid(), dialog.table_id);
 }
 
 void leave(struct conversation dialog)
@@ -125,4 +133,11 @@ void leave(struct conversation dialog)
         printf("Client: blad wysylania komunikatu DO WIDZENIA\n");
         exit(1);
     }
+}
+
+char *random_color()
+{
+    
+    char* result = (char *)colors[rand() % 4 + 1];
+    return result;
 }

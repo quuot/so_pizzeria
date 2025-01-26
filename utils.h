@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 //#define TABLE_ONE 2
 //#define TABLE_TWO 2
 //#define TABLE_THREE 1
@@ -15,6 +16,7 @@
 #define EWAKUACJA 5
 #define conversation_size 3 * sizeof(int) // wielkosc struktury conversation (bez uzglednienia wielkosci long int)
 #define world_size 8 * sizeof(int)  // wielkosc struktury world (bez uzglednienia wielkosci long int)
+
 
 struct table
 {
@@ -45,6 +47,8 @@ struct world
     int clients;
 };
 
+extern const char *colors[];
+
 int init_shm_tables(struct world *world_ptr);
 void print_tables(struct table *tables_ptr);
 int init_msg_manager_client();
@@ -52,3 +56,4 @@ int init_msg_client_manager();
 void ignore_fire_handler_init();
 void ignore_end_of_the_day_init();
 int init_shm_world();
+void cprintf(const char *color, const char *format, ...);

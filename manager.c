@@ -107,7 +107,7 @@ int main()
         }
     }
 
-    printf("$$$MANAGER:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\n");
+    cprintf(colors[5], "Manager:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\n");
 
     if (shmdt(tables_ptr) == -1)
     {
@@ -148,11 +148,11 @@ int everyone_left() // sprawdzanie czy wszyscy wyszli. Lokal pusty:1 | są klien
         if (clients[i][0] != -1)
         {
             empty = 0;
-            printf("$$$Manager:\t Wiecej klientow nie bedzie ale pizzeria NIE JEST PUSTA. Czekam.\n");
+            cprintf(colors[5], "Manager:\t Wiecej klientow nie bedzie ale pizzeria NIE JEST PUSTA. Czekam.\n");
             return empty;
         }
     }
-    printf("$$$Manager:\t Wiecej klientow nie bedzie i pizzeria JEST PUSTA. Mozna zamykac kase.\n");
+    cprintf(colors[5], "Manager:\t Wiecej klientow nie bedzie i pizzeria JEST PUSTA. Zamykam kase.\n");
     return empty;
 }
 
@@ -211,7 +211,7 @@ void remove_client(struct conversation *dialog)
 
 void allow_client_in(struct conversation dialog)
 {
-    printf("$$$Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\n", dialog.pid, dialog.table_id, dialog.individuals);
+    cprintf(colors[5], "Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\n", dialog.pid, dialog.table_id, dialog.individuals);
     dialog.topic = WEJDZ;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) //
     {
@@ -223,7 +223,7 @@ void allow_client_in(struct conversation dialog)
 
 void reject_client(struct conversation dialog)
 {
-    printf("$$$Manager:\t Brak wolnych miejsc. Nie przyjmuje klienta  %ld (%d osob).\n", dialog.pid, dialog.individuals);
+    cprintf(colors[5], "Manager:\t Brak wolnych miejsc. Nie przyjmuje klienta  %ld (%d osob).\n", dialog.pid, dialog.individuals);
     dialog.topic = BRAK_MIEJSC;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1)
     {
@@ -234,7 +234,7 @@ void reject_client(struct conversation dialog)
 
 void client_leaves(struct conversation dialog)
 {
-    printf("$$$Manager:\t Do widzenia. Usuwam %ld (%d osob) z listy klientow\n", dialog.pid, dialog.individuals);
+    cprintf(colors[5], "Manager:\t Do widzenia. Usuwam %ld (%d osob) z listy klientow\n", dialog.pid, dialog.individuals);
     remove_client(&dialog);
 }
 

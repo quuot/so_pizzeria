@@ -7,8 +7,20 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include "utils.h"
+#include <stdarg.h> //dla va_list (kolory)
 
 //ftok: A-shm tables, B-msg manager client, C-msg clienta manager, D-shm word
+
+   const char *colors[] = {
+    "\033[0m",      // 0-Reset
+    "\033[33m",     // 1-zolty
+    "\033[34m",     // 2-niebieski
+    "\033[35m",     // 3-Fioletowy
+    "\033[36m",     // 4-Cyjan
+    "\033[32m",     // 5-zielony TYLKO DLA MANAGERA
+    "\033[31m",     // 6-czerwony TYLKO DLA STRAZAKA
+};
+
 
 int init_shm_tables(struct world *world_ptr)
 {
@@ -100,4 +112,14 @@ int init_shm_world()
         exit(1);
     }
     return shm_id_world;
+}
+
+void cprintf(const char *color, const char *format, ...) 
+{
+    va_list args;
+    va_start(args, format);
+    printf("%s", color);       //ustawienie koloru 
+    vprintf(format, args);     // print listy argumentow va_list
+    printf("\033[0m");         // powrót do domyslnego
+    va_end(args);
 }

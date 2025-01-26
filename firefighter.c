@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
     if(seconds_untill_fire > 0) { //brak pozaru dla wartosci 0
         sleep(seconds_untill_fire);
-        printf("!!!FF:\t UWAAAAGAAA! POOOOOOOZAR! ==============================================\n");
+        cprintf(colors[6], "============================ STRAZAK: SYGNAL POZARU ============================\n");
         kill(0, SIGUSR1);
     }
 

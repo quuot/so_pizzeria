@@ -44,6 +44,7 @@ int main()
       exit_handler(1);
    }
 
+   int time_between_klients;
    printf("Czas do aktywacji strazaka [sek, 0=brak aktywacji]: ");
    scanf("%d", &pizzeria_1_ptr->time_to_fire);
    printf("Ilosc stolikow 1 osobowych: ");
@@ -56,10 +57,11 @@ int main()
    scanf("%d", &pizzeria_1_ptr->x4);
    printf("Ilosc klientow: ");
    scanf("%d", &pizzeria_1_ptr->clients);
+   printf("Odstep czasowy pomiedzy klientami [0-3s]: ");
+   scanf("%d", &time_between_klients);
 
    pizzeria_1_ptr->tables_total = pizzeria_1_ptr->x1 + pizzeria_1_ptr->x2 + pizzeria_1_ptr->x3 + pizzeria_1_ptr->x4;
    pizzeria_1_ptr->clients_total = pizzeria_1_ptr->x1 + (pizzeria_1_ptr->x2 * 2) + (pizzeria_1_ptr->x3 * 3) + (pizzeria_1_ptr->x4 * 4);
-
 
 
    tables_ptr = init_tables(pizzeria_1_ptr);              // utworzenie tabeli, wypelnienie danymi, przekazanie do shared memory
@@ -73,7 +75,8 @@ int main()
    printf("========================================================================\n\n");
 
    create_manager_firefighter(pizzeria_1_ptr->time_to_fire); // uruchomienie procesu manager i firefighter
-   sleep(1);
+   
+   //TODO SEMAFOR - OTWARTE/ZAMKNIETE
 
    for (int i = 0; i < pizzeria_1_ptr->clients; i++)
    {
@@ -81,9 +84,10 @@ int main()
       {
          break;
       }
-      int people = i % 3 + 1;
+      //int people = i % 3 + 1;
+      int people = rand() % 3 + 1;
       create_client(people);
-      sleep(1);
+      sleep(time_between_klients);
    }
 
    sleep(1);
