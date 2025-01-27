@@ -3,7 +3,7 @@
 
 #define NOTEBOOK_LENGTH 100
 
-//komunikaty do synchronizacji client-manager
+// komunikaty do synchronizacji client-manager
 #define CHCE_WEJSC 1
 #define WEJDZ 2
 #define BRAK_MIEJSC 3
@@ -11,8 +11,7 @@
 #define EWAKUACJA 5
 
 #define conversation_size 3 * sizeof(int) // wielkosc struktury conversation (bez uzglednienia wielkosci long int)
-#define world_size 8 * sizeof(int)  // wielkosc struktury world (bez uzglednienia wielkosci long int)
-
+#define world_size 8 * sizeof(int)        // wielkosc struktury world (bez uzglednienia wielkosci long int)
 
 struct table
 {
@@ -45,7 +44,6 @@ struct world
 
 extern const char *colors[];
 
-
 int init_shm_tables(struct world *world_ptr);
 void print_tables(struct table *tables_ptr);
 int init_msg_manager_client();
@@ -54,4 +52,4 @@ void ignore_fire_handler_init();
 void ignore_end_of_the_day_init();
 int init_shm_world();
 void cprintf(const char *color, const char *format, ...);
-void detach_mem_tables_world(struct table* tables_ptr, struct world* world_ptr);
+void detach_mem_tables_world(struct table *tables_ptr, struct world *world_ptr);

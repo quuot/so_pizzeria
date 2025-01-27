@@ -8,15 +8,15 @@
 #include "utils.h"
 #include <errno.h>
 
-int msg_manager_client_id; //ID kolejki MANAGER-->CLIENT
-int msg_client_manager_id; // ID kolejki CLIENT-->MANAGER
-int end_of_the_day; // flaga konca dnia, ustawiana na 1 po sygnale SIGUSR2
+int msg_manager_client_id;             // ID kolejki MANAGER-->CLIENT
+int msg_client_manager_id;             // ID kolejki CLIENT-->MANAGER
+int end_of_the_day;                    // flaga konca dnia, ustawiana na 1 po sygnale SIGUSR2
 int end_of_the_day_recently_triggered; // flaga; wartosc 1 oznacza ze sygnal SIGUSR2(koniec dnia) wplynal w biezacym przejsciu petli while
-int fire_alarm_triggered = 0; // flaga pozaru, ustawiana na 1 po sygnale SIGUSR1
-int fire_alarm_recently_triggered; // flaga; wartosc 1 oznacza ze sygnal SIGUSR1(pozar) wplynal w biezacym przejsciu petli while
-pid_t clients[NOTEBOOK_LENGTH][2]; // tablica z klientami w lokalu (notatnik managera)
-struct table *tables_ptr;        // wskaznik do tablicy struktur z ukladem stolikow w lokalu
-struct world *world_ptr; // wskaznik do struktury z danymi poczatkowymi (ilosc i rodzaj stolikowm, czas do alarmu)
+int fire_alarm_triggered = 0;          // flaga pozaru, ustawiana na 1 po sygnale SIGUSR1
+int fire_alarm_recently_triggered;     // flaga; wartosc 1 oznacza ze sygnal SIGUSR1(pozar) wplynal w biezacym przejsciu petli while
+pid_t clients[NOTEBOOK_LENGTH][2];     // tablica z klientami w lokalu (notatnik managera)
+struct table *tables_ptr;              // wskaznik do tablicy struktur z ukladem stolikow w lokalu
+struct world *world_ptr;               // wskaznik do struktury z danymi poczatkowymi (ilosc i rodzaj stolikowm, czas do alarmu)
 
 void fire_handler(int sig);
 void fire_handler_init();
@@ -38,58 +38,58 @@ void sigint_hadler_init();
 int main()
 {
     sigint_hadler_init();
-    fire_handler_init(); // inicjacja obslugi sygnalu 'POZAR', manager zaczyna sprawdzanie czy klienci wychodza z lokalu
+    fire_handler_init();           // inicjacja obslugi sygnalu 'POZAR', manager zaczyna sprawdzanie czy klienci wychodza z lokalu
     end_of_the_day_handler_init(); // inicjacja obslugi sygnalu "KONIEC DNIA". Po sygnale nie bedzie juz wiecej klientow
 
-    int shm_id_world = init_shm_world(); //uzyskanie dostepu do pamieci wspoldzielonej: dane poczatkowe "swiata"
-    world_ptr = (struct world *)shmat(shm_id_world, NULL, 0); //pobranie wskaznika do struktury "świat"
+    int shm_id_world = init_shm_world();                      // uzyskanie dostepu do pamieci wspoldzielonej: dane poczatkowe "swiata"
+    world_ptr = (struct world *)shmat(shm_id_world, NULL, 0); // pobranie wskaznika do struktury "świat"
 
-    int shm_id_tables = init_shm_tables(world_ptr); //uzyskanie dostepu do pamieci wspoldzielonej: uklad stolikow
+    int shm_id_tables = init_shm_tables(world_ptr);             // uzyskanie dostepu do pamieci wspoldzielonej: uklad stolikow
     tables_ptr = (struct table *)shmat(shm_id_tables, NULL, 0); // pobranie wskaznika do tablicy z ukladem stolikow w lokalu
 
-    init_clients_tab();                                         // inicjalizacja tablicy lokalnej "notes managera": wartosc poczatkowa=-1 (stoliki puste)
+    init_clients_tab(); // inicjalizacja tablicy lokalnej "notes managera": wartosc poczatkowa=-1 (stoliki puste)
 
-    msg_manager_client_id = init_msg_manager_client();          // utworzenie ID kolejki manager-client, MANAGER WYSYLA
-    msg_client_manager_id = init_msg_client_manager();          // utworzenie ID kolejki client-manager, MANAGER ODBIERA
+    msg_manager_client_id = init_msg_manager_client(); // utworzenie ID kolejki manager-client, MANAGER WYSYLA
+    msg_client_manager_id = init_msg_client_manager(); // utworzenie ID kolejki client-manager, MANAGER ODBIERA
 
-    struct conversation dialog; //stworzenie struktury do wymiany komunikatow z klientami
+    struct conversation dialog; // stworzenie struktury do wymiany komunikatow z klientami
 
-    end_of_the_day = 0; //flaga konca dnia
+    end_of_the_day = 0; // flaga konca dnia
 
     while (1)
     {
-        //zerowanie struktury komunikatu
+        // zerowanie struktury komunikatu
         dialog.pid = 0;
         dialog.topic = 0;
         dialog.individuals = 0;
 
-        //resetowanie flag zabezpieczajacych przez bledem msgrcv. Patrz: komentarz w wait_for_interaction().
+        // resetowanie flag zabezpieczajacych przez bledem msgrcv. Patrz: komentarz w wait_for_interaction().
         end_of_the_day_recently_triggered = 0;
         fire_alarm_recently_triggered = 0;
 
-        //oczekuje na komunikat od klienta
-        wait_for_interaction(&dialog); 
+        // oczekuje na komunikat od klienta
+        wait_for_interaction(&dialog);
 
         if (dialog.topic == CHCE_WEJSC)
         {
-            //komunikat "chce wejsc" oznacza, że klient przyszedł do lokalu i i oczekuje na stolik
-            // manager szuka wolnego stolika zgodnie z algorytmem
-            // Jesli znajdzie stolik to wysyla komunikat "wejdz" i dopisuje klienta do listy
-            // Jeśli nie ma wolnego stolika to wysyla komunikat "brak miejsc". 
+            // komunikat "chce wejsc" oznacza, że klient przyszedł do lokalu i i oczekuje na stolik
+            //  manager szuka wolnego stolika zgodnie z algorytmem
+            //  Jesli znajdzie stolik to wysyla komunikat "wejdz" i dopisuje klienta do listy
+            //  Jeśli nie ma wolnego stolika to wysyla komunikat "brak miejsc".
             grant_seat(dialog);
         }
 
         if (dialog.topic == DO_WIDZENIA || dialog.topic == EWAKUACJA)
         {
-            //komunikat "do widzenia" oznacza, że klient wstal od stolika i opuszcza lokal
-            //manager aktualizuje tabelę klientów w lokalu (odnotowuje zwolnienie stolika).
+            // komunikat "do widzenia" oznacza, że klient wstal od stolika i opuszcza lokal
+            // manager aktualizuje tabelę klientów w lokalu (odnotowuje zwolnienie stolika).
             walk_to_the_door(dialog);
         }
 
         if (end_of_the_day == 1)
-        { 
-            //Jeżeli jest aktywowana flaga "koniec dnia" to manager sprawdza czy lokal jest pusty
-            // funkcja everypne_left zwraca 1 jeśli lokal jest pusty, co przerywa glowna petla while u managera
+        {
+            // Jeżeli jest aktywowana flaga "koniec dnia" to manager sprawdza czy lokal jest pusty
+            //  funkcja everypne_left zwraca 1 jeśli lokal jest pusty, co przerywa glowna petla while u managera
             if (everyone_left() == 1)
             {
                 break;
@@ -97,17 +97,16 @@ int main()
         }
     }
 
-    //odlaczenie pamieci wspoldzielonej TABLES oraz WORLD
-    detach_mem_tables_world(tables_ptr, world_ptr); 
+    // odlaczenie pamieci wspoldzielonej TABLES oraz WORLD
+    detach_mem_tables_world(tables_ptr, world_ptr);
 
     cprintf(colors[5], "Manager:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\n");
 
     return 0;
 }
 
-
 void fire_handler(int sig)
-{ 
+{
     /// logika dzialania podczas pozaru
     /// ustawienie flag sterujacych
 
@@ -116,7 +115,7 @@ void fire_handler(int sig)
 }
 
 void fire_handler_init()
-{ 
+{
     /// uruchamia obsluge sygnalu pozaru - SIGUSR1
 
     struct sigaction sa;
@@ -131,7 +130,7 @@ void fire_handler_init()
     }
 }
 
-int everyone_left() 
+int everyone_left()
 {
     /// sprawdzanie czy wszyscy wyszli. Lokal pusty zwraca: 1 | Są klienci zwraca: 0
     /// wymaga zmiennej globalnej world_ptr oraz clients[][]
@@ -182,9 +181,9 @@ void init_clients_tab()
     /// wyplenienie tablicy lokalnej - notes managera
     /// kolumna [0]: pidy klientow jesli stolik zajety; -1 jesli stolik wolny
     /// kolumna [1]: ilosc osob przy stoliku
-    ///wymaga zmiennej globalnej clients
+    /// wymaga zmiennej globalnej clients
 
-    for (int i = 0; i < world_ptr->clients_total; i++) 
+    for (int i = 0; i < world_ptr->clients_total; i++)
     {
         clients[i][0] = -1;
     }
@@ -193,12 +192,12 @@ void init_clients_tab()
 void add_client(struct conversation *dialog)
 
 {
-    ///dodanie klienta do tablicy clients (notes managera)
-    /// zapisuje pid klienta oraz ilosc osob
-    ///wymaga zmiennej globalnej clients
+    /// dodanie klienta do tablicy clients (notes managera)
+    ///  zapisuje pid klienta oraz ilosc osob
+    /// wymaga zmiennej globalnej clients
 
     for (int i = 0; i < world_ptr->clients_total; i++)
-    { 
+    {
         if (clients[i][0] == -1)
         {
             clients[i][0] = dialog->pid;
@@ -210,8 +209,8 @@ void add_client(struct conversation *dialog)
 
 void remove_client(struct conversation *dialog)
 {
-    ///usuwa klienta z tablicy clients (notes managera)
-    ///ustawia kolumne 0 na -1 (brak klienta)
+    /// usuwa klienta z tablicy clients (notes managera)
+    /// ustawia kolumne 0 na -1 (brak klienta)
 
     for (int i = 0; i < world_ptr->clients_total; i++)
     {
@@ -225,8 +224,8 @@ void remove_client(struct conversation *dialog)
 
 void allow_client_in(struct conversation dialog)
 {
-    ///wpuszcza klienta do lokalu 
-    ///drukuje wiadomosc, wysyla komunikat "wejdz" w kolejce manager-client, dodaje klienta do notesu: add_client
+    /// wpuszcza klienta do lokalu
+    /// drukuje wiadomosc, wysyla komunikat "wejdz" w kolejce manager-client, dodaje klienta do notesu: add_client
 
     cprintf(colors[5], "Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\n", dialog.pid, dialog.table_id, dialog.individuals);
 
@@ -241,8 +240,8 @@ void allow_client_in(struct conversation dialog)
 
 void reject_client(struct conversation dialog)
 {
-    ///odmowa wejscia z powodu braku wolnego stolika
-    ///drukuje wiadomosc, wysyla komunikat "brak miejsc" w kolejce mamanger-client
+    /// odmowa wejscia z powodu braku wolnego stolika
+    /// drukuje wiadomosc, wysyla komunikat "brak miejsc" w kolejce mamanger-client
 
     cprintf(colors[5], "Manager:\t Brak wolnych miejsc. Nie przyjmuje klienta  %ld (%d osob).\n", dialog.pid, dialog.individuals);
 
@@ -256,19 +255,19 @@ void reject_client(struct conversation dialog)
 
 void client_leaves(struct conversation dialog)
 {
-    ///obsluga wyjscia klienta z lokalu
-    ///drukowanie komunikatu w zaleznosci czy klient wychodzi normalnie czy sie ewakuuje
-    ///usuwa klienta z tablicy clients: remove_client
+    /// obsluga wyjscia klienta z lokalu
+    /// drukowanie komunikatu w zaleznosci czy klient wychodzi normalnie czy sie ewakuuje
+    /// usuwa klienta z tablicy clients: remove_client
 
-    if(dialog.topic == EWAKUACJA)
+    if (dialog.topic == EWAKUACJA)
     {
         cprintf(colors[5], "Manager:\t Klient %ld (osob: %d) ewakuowal sie pomyslnie\n", dialog.pid, dialog.individuals);
-    } 
-    else 
+    }
+    else
     {
         cprintf(colors[5], "Manager:\t Do widzenia. Usuwam %ld (osob: %d) z listy klientow\n", dialog.pid, dialog.individuals);
     }
-    
+
     remove_client(&dialog);
 }
 
@@ -325,15 +324,15 @@ void wait_for_interaction(struct conversation *dialog)
     /// bledu msgrcv
 
     if (msgrcv(msg_client_manager_id, dialog, conversation_size, 0, 0) == -1)
-    { 
+    {
         // odbieranie dowolnego komunikatu na linii CLIENT-MANAGER
 
         if (end_of_the_day_recently_triggered == 1 || fire_alarm_recently_triggered == 1)
-        { 
+        {
             // DO NOTHING
-            // Zabezpieczenie przed falszywa wartoscia -1 
-            // Jeżeli proces czeka na msgrcv() i otrzyma sygnal "pożar" lub "koniec dnia" to funkcja zwraca -1 
-            // Aby różnicować ten przypadek od faktycznego bledu w odbieraniu komunikatu 
+            // Zabezpieczenie przed falszywa wartoscia -1
+            // Jeżeli proces czeka na msgrcv() i otrzyma sygnal "pożar" lub "koniec dnia" to funkcja zwraca -1
+            // Aby różnicować ten przypadek od faktycznego bledu w odbieraniu komunikatu
             // wprowadzono flagi sterowane sygnalem end_of_the_day_recently_triggered i fire_alarm_recently_triggered
             // taka flaga blokuje aktywacje perror w ponizszym "else"
         }
@@ -341,27 +340,27 @@ void wait_for_interaction(struct conversation *dialog)
         {
             perror("Manager: main: blad odbierania (msgrcv, msg_client_manager_id) \n");
             exit(errno);
-         }
+        }
     }
 }
 
 void sigint_handler(int sig)
-{ 
-   // obsluga sygnalu SIGINT - obsluga przerwania
-   // wysyla SIGINT do mainp
-   // mainp obsluguje zamkniecie wszystkich procesow
-   kill(getppid(), SIGINT);
-   exit(1);
+{
+    // obsluga sygnalu SIGINT - obsluga przerwania
+    // wysyla SIGINT do mainp
+    // mainp obsluguje zamkniecie wszystkich procesow
+    kill(getppid(), SIGINT);
+    exit(1);
 }
 
 void sigint_hadler_init()
-{ 
-   // Inicjalizacja obsługi sygnału SIGINT
-   // ustawia handler, który obsługuje sygnał przerwania: sigint_handler
+{
+    // Inicjalizacja obsługi sygnału SIGINT
+    // ustawia handler, który obsługuje sygnał przerwania: sigint_handler
 
-   struct sigaction act;
-   act.sa_handler = sigint_handler;
-   sigemptyset(&act.sa_mask);
-   act.sa_flags = 0;
-   sigaction(SIGINT, &act, 0);
+    struct sigaction act;
+    act.sa_handler = sigint_handler;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    sigaction(SIGINT, &act, 0);
 }

@@ -8,25 +8,26 @@
 #include <stdarg.h> //dla va_list (kolory)
 #include <errno.h>
 
-//Przydzial kluczy (ftok): 
-// A-shm tables, 
-// B-msg manager client, 
-// C-msg clienta manager, 
-// D-shm word
+// Przydzial kluczy (ftok):
+//  A-shm tables,
+//  B-msg manager client,
+//  C-msg clienta manager,
+//  D-shm word
 
-   const char *colors[] = { //tablica z kodami kolorow
-    "\033[0m",      // 0-Reset
-    "\033[33m",     // 1-zolty
-    "\033[34m",     // 2-niebieski
-    "\033[35m",     // 3-Fioletowy
-    "\033[36m",     // 4-Cyjan
-    "\033[32m",     // 5-zielony TYLKO DLA MANAGERA
-    "\033[31m",     // 6-czerwony TYLKO DLA STRAZAKA
+const char *colors[] = {
+    // tablica z kodami kolorow
+    "\033[0m",  // 0-Reset
+    "\033[33m", // 1-zolty
+    "\033[34m", // 2-niebieski
+    "\033[35m", // 3-Fioletowy
+    "\033[36m", // 4-Cyjan
+    "\033[32m", // 5-zielony TYLKO DLA MANAGERA
+    "\033[31m", // 6-czerwony TYLKO DLA STRAZAKA
 };
 
 int init_shm_tables(struct world *world_ptr)
 {
-    /// Tworzenie/uzyskiwanie dostepu do pamieci wspoldzielonej dla tablicy struktur TABLES (stoliki). 
+    /// Tworzenie/uzyskiwanie dostepu do pamieci wspoldzielonej dla tablicy struktur TABLES (stoliki).
     /// Tablica zawiera rozklad stolikow (id stolika, ile miejsc ogolem, ile miejsc wolnych, jak liczna grupa zajmuje stolik).
     /// Przejmuje wskaznik do struktury world (wykorzystuje dane inicjalizacyjne wprowadzone przez uzytkownika). Zwraca ID pamieci.
 
@@ -92,30 +93,29 @@ int init_msg_client_manager()
 }
 
 void ignore_fire_handler_init()
-{ 
+{
     /// Uruchomienie obslugi sygnalu pozaru SIGUSR1 - Ignoruje sygnal
     /// wymagany do procesow, ktore nie zmieniaja swojej pracy pomimo ogloszenia alarmu (np. mainp, firefighter)
 
     struct sigaction sa;
-    sa.sa_handler = SIG_IGN;  //Ignore
+    sa.sa_handler = SIG_IGN; // Ignore
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
     if (sigaction(SIGUSR1, &sa, NULL) == -1)
-    { 
-        perror("Utils: ignore_fire_handler_init: blad ustawienia handlera pozaru (sigaction, SIGUSR1)"); 
+    {
+        perror("Utils: ignore_fire_handler_init: blad ustawienia handlera pozaru (sigaction, SIGUSR1)");
         exit(errno);
     }
 }
 
-
 void ignore_end_of_the_day_init()
-{ 
+{
     /// Uruchomienie obslugi sygnalu konca dnia SIGUSR2- Ignoruje sygnal
     /// wymagany do procesow, ktore nie zmieniaja swojej pracy pomimo ogloszenia konca dnia (np. firefighter)
 
     struct sigaction sa;
-    sa.sa_handler = SIG_IGN; //Ignore
+    sa.sa_handler = SIG_IGN; // Ignore
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
@@ -128,7 +128,7 @@ void ignore_end_of_the_day_init()
 
 int init_shm_world()
 {
-    /// Tworzenie/uzyskiwanie dostepu do pamieci wspoldzielonej dla struktury WORLD (dane inicjacyjne). Zwraca ID pamieci. 
+    /// Tworzenie/uzyskiwanie dostepu do pamieci wspoldzielonej dla struktury WORLD (dane inicjacyjne). Zwraca ID pamieci.
     /// Umozliwia dostep do danych inicjalizacyjnych "swiata" w roznych procesach.
 
     int shm_id_world_key = ftok(".", 'D');
@@ -148,26 +148,26 @@ int init_shm_world()
     return shm_id_world;
 }
 
-void cprintf(const char *color, const char *format, ...) 
+void cprintf(const char *color, const char *format, ...)
 {
     /// Wlasna funkcja drukujaca w terminalu przy uzyciu kolorow
     /// 1 parametr: kod koloru (z tabeli colors[]), kolejne parametry analogicznie do printf
 
     va_list args;
     va_start(args, format);
-    printf("%s", color);       //ustawienie koloru 
-    vprintf(format, args);     // print listy argumentow va_list
-    printf("\033[0m");         // powrót do domyslnego
+    printf("%s", color);   // ustawienie koloru
+    vprintf(format, args); // print listy argumentow va_list
+    printf("\033[0m");     // powrót do domyslnego
     va_end(args);
 }
 
-void detach_mem_tables_world(struct table* tables_ptr, struct world* world_ptr)
+void detach_mem_tables_world(struct table *tables_ptr, struct world *world_ptr)
 {
     /// Odlaczenie pamieci wspoldzielonej TABLES oraz WORLD.
     /// Do uzycia w plikach gdzie stosowano obie funkcje: init_shm_world oraz init_shm_tables
     /// Przyjmuje wskazniki do odczepianej pamieci jako parametry
 
-    if(tables_ptr != (struct table*)NULL)
+    if (tables_ptr != (struct table *)NULL)
     {
         if (shmdt(tables_ptr) == -1)
         {
@@ -176,7 +176,7 @@ void detach_mem_tables_world(struct table* tables_ptr, struct world* world_ptr)
         }
     }
 
-    if(world_ptr != (struct world*)NULL)
+    if (world_ptr != (struct world *)NULL)
     {
         if (shmdt(world_ptr) == -1)
         {
