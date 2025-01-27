@@ -34,6 +34,7 @@ void walk_to_the_door(struct conversation dialog);
 void wait_for_interaction(struct conversation *dialog);
 void sigint_handler(int sig);
 void sigint_hadler_init();
+void exit_handler(int error_number);
 
 int main()
 {
@@ -126,7 +127,7 @@ void fire_handler_init()
     if (sigaction(SIGUSR1, &sa, NULL) == -1)
     {
         perror("Manager: fire_handler_init: blad ustawienia handlera pozaru (sigaction, SIGUSR1)");
-        exit(errno);
+        exit_handler(errno);
     }
 }
 
@@ -172,7 +173,7 @@ void end_of_the_day_handler_init()
     if (sigaction(SIGUSR2, &sa, NULL) == -1)
     {
         perror("Manager: end_of_the_day_handler_init: blad ustawienia handlera sygnalu konca dnia(sigaction,SIGUSR2)");
-        exit(errno);
+        exit_handler(errno);
     }
 }
 
@@ -233,7 +234,7 @@ void allow_client_in(struct conversation dialog)
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) //
     {
         printf("manager: blad wysylania komunikatu WEJDZ\n");
-        exit(errno);
+        exit_handler(errno);
     }
     add_client(&dialog); // dodanie klienta do tablicy CLIENTS
 }
@@ -248,8 +249,8 @@ void reject_client(struct conversation dialog)
     dialog.topic = BRAK_MIEJSC;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1)
     {
-        printf("manager: blad wysylania komunikatu BRAK_MIEJSC\n");
-        exit(errno);
+        printf("manager: reject_client: blad wysylania komunikatu BRAK_MIEJSC (msgsnd, msg_manager_client_id)\n");
+        exit_handler(errno);
     }
 }
 
@@ -339,7 +340,7 @@ void wait_for_interaction(struct conversation *dialog)
         else
         {
             perror("Manager: main: blad odbierania (msgrcv, msg_client_manager_id) \n");
-            exit(errno);
+            exit_handler(errno);
         }
     }
 }
@@ -363,4 +364,13 @@ void sigint_hadler_init()
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     sigaction(SIGINT, &act, 0);
+}
+
+void exit_handler(int error_number)
+{
+    // obsluga awaryjnego zamkniecia managera
+    //wysyla informacje do mainp oraz konczy dzialanie z numerem bledu
+
+    kill(getppid(), SIGINT);
+    exit(error_number);
 }
