@@ -11,10 +11,10 @@
 
 int shm_id_tables = -1; // ID pamieci wspoldzielonej TABLES (uklad stolikow)
 struct table *tables_ptr = 0; // wskaznik na TABLES w shm
-int msg_manager_client_id; //ID kolejki MANAGER-->CLIENT
-int msg_client_manager_id; // ID kolejki CLIENT-->MANAGER
+int msg_manager_client_id = -1; //ID kolejki MANAGER-->CLIENT
+int msg_client_manager_id = -1; // ID kolejki CLIENT-->MANAGER
 int fire_alarm_triggered = 0; // flaga pozaru, ustawiana na 1 po sygnale SIGUSR1
-int shm_id_pizzeria1; //utworzenie pamieci wspoldzielonej dla informacji o lokalu
+int shm_id_pizzeria1 = -1; //utworzenie pamieci wspoldzielonej dla informacji o lokalu
 struct world *pizzeria_1_ptr = 0; // wskaznik na WORLD w shm (dane poczatkowe)
 int time_between_klients; //czas pomiedzy tworzeniem kolejnych klientow, definiuje uzytkownik
 
@@ -110,24 +110,33 @@ void exit_handler(int code)
       }
    }
 
-   if (shmctl(shm_id_pizzeria1, IPC_RMID, NULL) == -1)
-   { 
-      // usuniecie pamieci wspoldzielonej PIZZERIA/WORLD (dane poczatkowe)
-      perror("Mainp: exit_handler: Blad usuwania pamieci wspoldzielonej (shmctl, shm_id_pizzeria1).");
-      exit(errno);
+   if(shm_id_pizzeria1 != -1)
+   {
+      if (shmctl(shm_id_pizzeria1, IPC_RMID, NULL) == -1)
+      { 
+         // usuniecie pamieci wspoldzielonej PIZZERIA/WORLD (dane poczatkowe)
+         perror("Mainp: exit_handler: Blad usuwania pamieci wspoldzielonej (shmctl, shm_id_pizzeria1).");
+         exit(errno);
+      }
    }
 
-   if (msgctl(msg_manager_client_id, IPC_RMID, NULL) == -1)
-   { 
-      // usuniecie kolejki komunikatow MANAGER -> CLIENT
-      perror("Mainp: exit_handler: Blad usuwania kolejki komunikatow manager-client (msgctl).");
-      exit(errno);
+   if(msg_manager_client_id != -1)
+   {
+      if (msgctl(msg_manager_client_id, IPC_RMID, NULL) == -1)
+      { 
+         // usuniecie kolejki komunikatow MANAGER -> CLIENT
+         perror("Mainp: exit_handler: Blad usuwania kolejki komunikatow manager-client (msgctl).");
+         exit(errno);
+      }
    }
 
-   if (msgctl(msg_client_manager_id, IPC_RMID, NULL) == -1)
-   { // usuniecie kolejki komunikatow CLIENT -> MANAGER
-      perror("Mainp: exit_handler: Blad usuwania kolejki komunikatow client-manager (msgctl).");
-      exit(errno);
+   if(msg_client_manager_id != -1)
+   {
+      if (msgctl(msg_client_manager_id, IPC_RMID, NULL) == -1)
+      { // usuniecie kolejki komunikatow CLIENT -> MANAGER
+         perror("Mainp: exit_handler: Blad usuwania kolejki komunikatow client-manager (msgctl).");
+         exit(errno);
+      }
    }
 
    kill(0, SIGTERM);
@@ -339,12 +348,14 @@ void get_starting_data()
 { 
    // pobranie danych startowych od uzytkownika
    // sprawdzenie danych statowych funkcja validate_input
+   //zakres min - JUZ DOZWOLONY
+   //zakres max - JESZCZE DOZWOLONY 
 
    validate_input("Czas do aktywacji strazaka [0-120sek, 0=brak aktywacji]: ", &pizzeria_1_ptr->time_to_fire, 0, 120);
-   validate_input("Ilosc stolikow 1 osobowych [0-50]: ", &pizzeria_1_ptr->x1, 0, 50);
-   validate_input("Ilosc stolikow 2 osobowych [0-50]: ", &pizzeria_1_ptr->x2, 0, 50);
-   validate_input("Ilosc stolikow 3 osobowych [0-50]: ", &pizzeria_1_ptr->x3, 0, 50);
-   validate_input("Ilosc stolikow 4 osobowych [0-50]: ", &pizzeria_1_ptr->x4, 0, 50);
+   validate_input("Ilosc stolikow 1 osobowych [0-10]: ", &pizzeria_1_ptr->x1, 0, 10);
+   validate_input("Ilosc stolikow 2 osobowych [0-10]: ", &pizzeria_1_ptr->x2, 0, 10);
+   validate_input("Ilosc stolikow 3 osobowych [0-10]: ", &pizzeria_1_ptr->x3, 0, 10);
+   validate_input("Ilosc stolikow 4 osobowych [0-10]: ", &pizzeria_1_ptr->x4, 0, 10);
    validate_input("Ilosc klientow [1-10 000]: ", &pizzeria_1_ptr->clients, 1, 10000);
    validate_input("Odstep czasowy pomiedzy klientami [0-3s]: ", &time_between_klients, 0, 3);
 
@@ -357,13 +368,13 @@ void validate_input(const char *message, int *variable, int min, int max)
    //sprawdza poprawnosc danych podanych z klawiatury
    //parametr 1: tresc promptu o podanie danych
    //parametr 2: adres do zapisu danych (wskaznik do zmiennej)
-   //parametr 3: wartosc minimalna (jeszcze niedozwolona)
-   //parametr 4: wartosc maxymalna (juz niedozowlona)
+   //parametr 3: wartosc minimalna (juz dozwolona)
+   //parametr 4: wartosc maxymalna (jeszcze dozwolona)
 
     printf("%s", message);
 
     if (scanf("%d", variable) != 1 || *variable < min || *variable > max) {
-        fprintf(stderr, "Błąd: Bledne dane wejściowe.\n");
+        fprintf(stderr, "Błąd: Bledne dane wejściowe. Stosuj sie do instrukcji w nawiasach [ ].\n");
         exit_handler(1);
     }
 }
