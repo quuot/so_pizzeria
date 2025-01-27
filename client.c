@@ -66,7 +66,7 @@ void fire_handler(int sig)
     cprintf(text_color, "Client: KLIENT %d ODEBRAL POZAR! ZACZYNAM EWAKUACJE!\n", getpid());
     struct conversation dialog;
     dialog.pid = getpid();
-    dialog.topic = DO_WIDZENIA;
+    dialog.topic = EWAKUACJA;
     dialog.table_id = table_id;
     dialog.individuals = individuals;
     leave(dialog);
