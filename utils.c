@@ -167,14 +167,21 @@ void detach_mem_tables_world(struct table* tables_ptr, struct world* world_ptr)
     /// Do uzycia w plikach gdzie stosowano obie funkcje: init_shm_world oraz init_shm_tables
     /// Przyjmuje wskazniki do odczepianej pamieci jako parametry
 
-    if (shmdt(tables_ptr) == -1)
+    if(tables_ptr != (struct table*)NULL)
     {
-        perror("Utils: main(): Blad odlaczania pamieci wspoldzielonej (shmdt, tables_ptr).");
-        exit(errno);
+        if (shmdt(tables_ptr) == -1)
+        {
+            perror("Utils: main(): Blad odlaczania pamieci wspoldzielonej (shmdt, tables_ptr).");
+            exit(errno);
+        }
     }
-    if (shmdt(world_ptr) == -1)
+
+    if(world_ptr != (struct world*)NULL)
     {
-        perror("Utils: main(): Blad odlaczania pamieci wspoldzielonej (shmdt, world_ptr).");
-        exit(errno);
+        if (shmdt(world_ptr) == -1)
+        {
+            perror("Utils: main(): Blad odlaczania pamieci wspoldzielonej (shmdt, world_ptr).");
+            exit(errno);
+        }
     }
 }

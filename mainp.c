@@ -9,7 +9,7 @@
 #include "utils.h"
 #include <errno.h>
 
-int shm_id_tables; // ID pamieci wspoldzielonej TABLES (uklad stolikow)
+int shm_id_tables = -1; // ID pamieci wspoldzielonej TABLES (uklad stolikow)
 struct table *tables_ptr = 0; // wskaznik na TABLES w shm
 int msg_manager_client_id; //ID kolejki MANAGER-->CLIENT
 int msg_client_manager_id; // ID kolejki CLIENT-->MANAGER
@@ -100,11 +100,14 @@ void exit_handler(int code)
    //odlaczenie pamieci wspoldzielonej
    detach_mem_tables_world(tables_ptr, pizzeria_1_ptr); 
 
-   if (shmctl(shm_id_tables, IPC_RMID, NULL) == -1)
-   { 
-      // usuniecie pamieci wspoldzielonej TABLES (uklad stolikow)
-      perror("Mainp: exit_handler: Blad usuwania pamieci wspoldzielonej (shmctl).");
-      exit(errno);
+   if(shm_id_tables != -1)
+   {
+      if (shmctl(shm_id_tables, IPC_RMID, NULL) == -1)
+      { 
+         // usuniecie pamieci wspoldzielonej TABLES (uklad stolikow)
+         perror("Mainp: exit_handler: Blad usuwania pamieci wspoldzielonej (shmctl).");
+         exit(errno);
+      }
    }
 
    if (shmctl(shm_id_pizzeria1, IPC_RMID, NULL) == -1)

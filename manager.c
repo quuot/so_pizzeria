@@ -32,9 +32,12 @@ void client_leaves(struct conversation dialog);
 void grant_seat(struct conversation dialog);
 void walk_to_the_door(struct conversation dialog);
 void wait_for_interaction(struct conversation *dialog);
+void sigint_handler(int sig);
+void sigint_hadler_init();
 
 int main()
 {
+    sigint_hadler_init();
     fire_handler_init(); // inicjacja obslugi sygnalu 'POZAR', manager zaczyna sprawdzanie czy klienci wychodza z lokalu
     end_of_the_day_handler_init(); // inicjacja obslugi sygnalu "KONIEC DNIA". Po sygnale nie bedzie juz wiecej klientow
 
@@ -340,4 +343,25 @@ void wait_for_interaction(struct conversation *dialog)
             exit(errno);
          }
     }
+}
+
+void sigint_handler(int sig)
+{ 
+   // obsluga sygnalu SIGINT - obsluga przerwania
+   // wysyla SIGINT do mainp
+   // mainp obsluguje zamkniecie wszystkich procesow
+   kill(getppid(), SIGINT);
+   exit(1);
+}
+
+void sigint_hadler_init()
+{ 
+   // Inicjalizacja obsługi sygnału SIGINT
+   // ustawia handler, który obsługuje sygnał przerwania: sigint_handler
+
+   struct sigaction act;
+   act.sa_handler = sigint_handler;
+   sigemptyset(&act.sa_mask);
+   act.sa_flags = 0;
+   sigaction(SIGINT, &act, 0);
 }
