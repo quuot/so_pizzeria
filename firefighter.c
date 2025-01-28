@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     if (seconds_untill_fire > 0)
     {                               // brak pozaru dla wartosci 0
         sleep(seconds_untill_fire); // czeka z ogloszeniem pozaru, czas podaje uzytkownik
-        cprintf(colors[6], "============================ STRAZAK: SYGNAL POZARU ============================\n");
+        printf("\033[31m============================ STRAZAK: SYGNAL POZARU ============================\033[0m\n");
         kill(0, SIGUSR1);
     }
 

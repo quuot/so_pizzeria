@@ -13,6 +13,11 @@
 #define conversation_size 3 * sizeof(int) // wielkosc struktury conversation (bez uzglednienia wielkosci long int)
 #define world_size 8 * sizeof(int)        // wielkosc struktury world (bez uzglednienia wielkosci long int)
 
+#define COL_MAN "\033[32m"
+#define COL_CLI "\033[36m"
+#define COL_FIR "\033[31m"
+#define COL_RES "\x1b[0m"
+
 struct table
 {
     long id;
@@ -42,8 +47,6 @@ struct world
     int clients;
 };
 
-extern const char *colors[];
-
 int init_shm_tables(struct world *world_ptr);
 void print_tables(struct table *tables_ptr);
 int init_msg_manager_client();
@@ -53,3 +56,4 @@ void ignore_end_of_the_day_init();
 int init_shm_world();
 void cprintf(const char *color, const char *format, ...);
 void detach_mem_tables_world(struct table *tables_ptr, struct world *world_ptr);
+void sigstop_hadler_init();

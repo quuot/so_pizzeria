@@ -14,17 +14,6 @@
 //  C-msg clienta manager,
 //  D-shm word
 
-const char *colors[] = {
-    // tablica z kodami kolorow
-    "\033[0m",  // 0-Reset
-    "\033[33m", // 1-zolty
-    "\033[34m", // 2-niebieski
-    "\033[35m", // 3-Fioletowy
-    "\033[36m", // 4-Cyjan
-    "\033[32m", // 5-zielony TYLKO DLA MANAGERA
-    "\033[31m", // 6-czerwony TYLKO DLA STRAZAKA
-};
-
 int init_shm_tables(struct world *world_ptr)
 {
     /// Tworzenie/uzyskiwanie dostepu do pamieci wspoldzielonej dla tablicy struktur TABLES (stoliki).
@@ -146,19 +135,6 @@ int init_shm_world()
     }
 
     return shm_id_world;
-}
-
-void cprintf(const char *color, const char *format, ...)
-{
-    /// Wlasna funkcja drukujaca w terminalu przy uzyciu kolorow
-    /// 1 parametr: kod koloru (z tabeli colors[]), kolejne parametry analogicznie do printf
-
-    va_list args;
-    va_start(args, format);
-    printf("%s", color);   // ustawienie koloru
-    vprintf(format, args); // print listy argumentow va_list
-    printf("\033[0m");     // powrót do domyslnego
-    va_end(args);
 }
 
 void detach_mem_tables_world(struct table *tables_ptr, struct world *world_ptr)

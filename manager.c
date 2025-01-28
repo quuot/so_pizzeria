@@ -71,7 +71,7 @@ int main()
         // oczekuje na komunikat od klienta
         wait_for_interaction(&dialog);
 
-        if (dialog.topic == CHCE_WEJSC)
+        if (dialog.topic == CHCE_WEJSC && fire_alarm_triggered == 0)
         {
             // komunikat "chce wejsc" oznacza, że klient przyszedł do lokalu i i oczekuje na stolik
             //  manager szuka wolnego stolika zgodnie z algorytmem
@@ -87,7 +87,7 @@ int main()
             walk_to_the_door(dialog);
         }
 
-        if (end_of_the_day == 1)
+        if (end_of_the_day == 1 || fire_alarm_triggered == 1)
         {
             // Jeżeli jest aktywowana flaga "koniec dnia" to manager sprawdza czy lokal jest pusty
             //  funkcja everypne_left zwraca 1 jeśli lokal jest pusty, co przerywa glowna petla while u managera
@@ -101,8 +101,8 @@ int main()
     // odlaczenie pamieci wspoldzielonej TABLES oraz WORLD
     detach_mem_tables_world(tables_ptr, world_ptr);
 
-    cprintf(colors[5], "Manager:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\n");
-
+    printf("\033[32mManager:\t Zamykam pizzerie. (prawidlowe wyjscie z petli)\x1b[0m\n");
+    kill(getppid(), SIGINT);
     return 0;
 }
 
@@ -142,12 +142,12 @@ int everyone_left()
         if (clients[i][0] != -1)
         {
             empty = 0;
-            cprintf(colors[5], "Manager:\t Wiecej klientow nie bedzie ale pizzeria NIE JEST PUSTA. Czekam.\n");
+            printf("\033[32mManager:\t Czekam na wyjscie klientow.\x1b[0m\n");
             return empty;
         }
     }
 
-    cprintf(colors[5], "Manager:\t Wiecej klientow nie bedzie i pizzeria JEST PUSTA. Zamykam kase.\n");
+    printf("\033[32mManager:\t WSZYSCY WYSZLI. Zamykam kase.\x1b[0m\n");
 
     return empty;
 }
@@ -156,7 +156,6 @@ void end_of_the_day_handler(int sig)
 {
     /// logika dzialania podczas sygnalu "koniec dnia"
     /// ustawienie flag sterujacych
-
     end_of_the_day = 1;
     end_of_the_day_recently_triggered = 1;
 }
@@ -228,7 +227,7 @@ void allow_client_in(struct conversation dialog)
     /// wpuszcza klienta do lokalu
     /// drukuje wiadomosc, wysyla komunikat "wejdz" w kolejce manager-client, dodaje klienta do notesu: add_client
 
-    cprintf(colors[5], "Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\n", dialog.pid, dialog.table_id, dialog.individuals);
+    printf("\033[32m Manager:\t Witaj %ld. Mozesz wejsc, otrzymujesz stolik %d. Dodaje %d osob do listy klientow.\x1b[0m\n", dialog.pid, dialog.table_id, dialog.individuals);
 
     dialog.topic = WEJDZ;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1) //
@@ -244,12 +243,12 @@ void reject_client(struct conversation dialog)
     /// odmowa wejscia z powodu braku wolnego stolika
     /// drukuje wiadomosc, wysyla komunikat "brak miejsc" w kolejce mamanger-client
 
-    cprintf(colors[5], "Manager:\t Brak wolnych miejsc. Nie przyjmuje klienta  %ld (%d osob).\n", dialog.pid, dialog.individuals);
+    printf("\033[32mManager:\t Brak wolnych miejsc. Nie przyjmuje klienta  %ld (%d osob).\x1b[0m\n", dialog.pid, dialog.individuals);
 
     dialog.topic = BRAK_MIEJSC;
     if (msgsnd(msg_manager_client_id, &dialog, conversation_size, 0) == -1)
     {
-        printf("manager: reject_client: blad wysylania komunikatu BRAK_MIEJSC (msgsnd, msg_manager_client_id)\n");
+        printf("\033[32mmanager: reject_client: blad wysylania komunikatu BRAK_MIEJSC (msgsnd, msg_manager_client_id)\x1b[0m\n");
         exit_handler(errno);
     }
 }
@@ -262,11 +261,11 @@ void client_leaves(struct conversation dialog)
 
     if (dialog.topic == EWAKUACJA)
     {
-        cprintf(colors[5], "Manager:\t Klient %ld (osob: %d) ewakuowal sie pomyslnie\n", dialog.pid, dialog.individuals);
+        printf("\033[32mManager:\t Klient %ld (osob: %d) ewakuowal sie pomyslnie\x1b[0m\n", dialog.pid, dialog.individuals);
     }
     else
     {
-        cprintf(colors[5], "Manager:\t Do widzenia. Usuwam %ld (osob: %d) z listy klientow\n", dialog.pid, dialog.individuals);
+        printf("\033[32mManager:\t Do widzenia. Usuwam %ld (osob: %d) z listy klientow\x1b[0m\n", dialog.pid, dialog.individuals);
     }
 
     remove_client(&dialog);
@@ -369,7 +368,7 @@ void sigint_hadler_init()
 void exit_handler(int error_number)
 {
     // obsluga awaryjnego zamkniecia managera
-    //wysyla informacje do mainp oraz konczy dzialanie z numerem bledu
+    // wysyla informacje do mainp oraz konczy dzialanie z numerem bledu
 
     kill(getppid(), SIGINT);
     exit(error_number);

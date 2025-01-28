@@ -70,8 +70,6 @@ int main()
          break;
       }
 
-      // int people = i % 3 + 1; //inna mozliwosc generowania ilosci osob (zalezna od petli)
-
       int people = rand() % 3 + 1; // podstawowa opcja losowania ilosci osob - wartosci losowe
 
       create_client(people);       // tworzenie klienta
@@ -79,8 +77,10 @@ int main()
    }
 
    sleep(1);
-
-   kill(0, SIGUSR2); // sygnal KONIEC DNIA, nie bedzie wiecej klientow
+   if (fire_alarm_triggered == 0)
+   {
+      kill(0, SIGUSR2); // sygnal KONIEC DNIA, nie bedzie wiecej klientow
+   }
 
    wait_all_processes();
 
@@ -93,8 +93,10 @@ void exit_handler(int code)
    // odlacza pamiec TABLES i WORLD
    // usuwa kolejki: manager-client, client-manager
    // usuwa pamiec wspoldzielona tables i world
-
    // odlaczenie pamieci wspoldzielonej
+
+   // wait_all_processes();
+
    detach_mem_tables_world(tables_ptr, pizzeria_1_ptr);
 
    if (shm_id_tables != -1)
@@ -117,6 +119,8 @@ void exit_handler(int code)
       }
    }
 
+   kill(0, SIGTERM);
+
    if (msg_manager_client_id != -1)
    {
       if (msgctl(msg_manager_client_id, IPC_RMID, NULL) == -1)
@@ -137,7 +141,6 @@ void exit_handler(int code)
    }
 
    kill(0, SIGTERM);
-
    exit(code);
 }
 
@@ -148,7 +151,7 @@ void sigint_handler(int sig)
    // konczy program przez exit_handler
 
    kill(0, SIGTERM);
-   exit_handler(errno);
+   exit_handler(1);
 }
 
 void sigint_hadler_init()
@@ -222,7 +225,7 @@ void create_manager_firefighter(int seconds_untill_fire)
    {
    case -1:
       perror("mainp: create_manager_firefighter: Blad fork managera");
-      exit_handler(1);
+      exit_handler(errno);
    case 0:
       execl("./bin/manager", "manager", NULL);
    }
@@ -231,11 +234,11 @@ void create_manager_firefighter(int seconds_untill_fire)
    {
    case -1:
       perror("mainp: create_manager_firefighter: Blad fork firefightera");
-      exit_handler(1);
+      exit_handler(errno);
    case 0:
-      char tmp_str[30];
-      snprintf(tmp_str, sizeof(tmp_str), "%d", seconds_untill_fire); // przygotowanie argumentu wywolania
-      execl("./bin/firefighter", "firefighter", tmp_str, NULL);
+      char tmp_str2[30];
+      snprintf(tmp_str2, sizeof(tmp_str2), "%d", seconds_untill_fire); // przygotowanie argumentu wywolania
+      execl("./bin/firefighter", "firefighter", tmp_str2, NULL);
    }
 }
 
@@ -261,7 +264,14 @@ void create_client(int individuals)
       case 0:
          char tmp_str[30];
          snprintf(tmp_str, sizeof(tmp_str), "%d", individuals);
-         execl("./bin/client", "client", tmp_str, NULL);
+         char tmp_str2[30];
+         snprintf(tmp_str2, sizeof(tmp_str2), "%d", msg_client_manager_id);
+
+         if (fire_alarm_triggered == 1)
+         {
+            exit(0);
+         }
+         execl("./bin/client", "client", tmp_str, tmp_str2, NULL);
          perror("main: create_client: blad execl ze zmienna iloscia klientow");
          exit_handler(errno);
       }
@@ -310,33 +320,16 @@ void fire_handler(int sig)
 void sigterm_handler_init()
 {
    // uruchamia obsluge sygnalu SIGTERM.
-   // Sygnal jest ignorowany 1 raz. Potem dziala domyslnie --> sigterm_handler
+   // Sygnal jest ignorowany
 
    struct sigaction sa;
-   sa.sa_handler = sigterm_handler;
+   sa.sa_handler = SIG_IGN;
    sigemptyset(&sa.sa_mask);
    sa.sa_flags = 0;
 
    if (sigaction(SIGTERM, &sa, NULL) == -1)
    {
       perror("Mainp: sigterm_handler_init: blad ustawienia handlera sigterm nr 1");
-      exit_handler(errno);
-   }
-}
-
-void sigterm_handler(int sig)
-{
-   // obsluga sygnalu SIGTERM: pierwszy sygnal jest ignorowany,
-   // funkcja przywraca domyslna obsluge sygnalu
-
-   struct sigaction sa;
-   sa.sa_handler = SIG_DFL; // wartosc domyslna
-   sigemptyset(&sa.sa_mask);
-   sa.sa_flags = 0;
-
-   if (sigaction(SIGTERM, &sa, NULL) == -1)
-   {
-      perror("Mainp: sigterm_handler: blad ustawienia handlera sigterm nr 1");
       exit_handler(errno);
    }
 }
@@ -354,7 +347,7 @@ void get_starting_data()
    validate_input("Ilosc stolikow 3 osobowych [0-10]: ", &pizzeria_1_ptr->x3, 0, 10);
    validate_input("Ilosc stolikow 4 osobowych [0-10]: ", &pizzeria_1_ptr->x4, 0, 10);
    validate_input("Ilosc klientow [1-4 000]: ", &pizzeria_1_ptr->clients, 1, 4000);
-   validate_input("Odstep czasowy pomiedzy klientami [0-3s]: ", &time_between_klients, 0, 3);
+   validate_input("Odstep czasowy pomiedzy klientami [1-3s]: ", &time_between_klients, 1, 3);
 
    pizzeria_1_ptr->tables_total = pizzeria_1_ptr->x1 + pizzeria_1_ptr->x2 + pizzeria_1_ptr->x3 + pizzeria_1_ptr->x4;
    pizzeria_1_ptr->clients_total = pizzeria_1_ptr->x1 + (pizzeria_1_ptr->x2 * 2) + (pizzeria_1_ptr->x3 * 3) + (pizzeria_1_ptr->x4 * 4);
